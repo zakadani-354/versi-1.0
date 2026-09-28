@@ -17,6 +17,9 @@ const SESSION_SECRET = process.env.SESSION_SECRET || (
   process.env.NODE_ENV === 'production' ? '' : 'local-development-session-secret'
 );
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SUPABASE_TABLE = 'tpq_app_state';
 
 // Master referensi
 const MASTER_KELAS = ['PAUD A', 'PAUD B', 'KELAS 1', 'KELAS 2', 'KELAS 3', 'KELAS 4', 'KELAS 5', 'KELAS 6'];
@@ -295,8 +298,35 @@ function getInitialData() {
   };
 }
 
-// Baca DB
-function loadDatabase() {
+function normalizeDatabase(data) {
+  if (!data.kelasList) data.kelasList = MASTER_KELAS;
+  if (!data.kelompokList) data.kelompokList = MASTER_KELOMPOK;
+  if (!data.kategoriList) data.kategoriList = MASTER_KATEGORI;
+  if (!data.users) data.users = [];
+  if (!data.siswa) data.siswa = [];
+  if (!data.targetMateri) data.targetMateri = [];
+  if (!data.penilaian) data.penilaian = [];
+  if (!data.nilaiRapor) data.nilaiRapor = [];
+  if (!data.presensi) data.presensi = [];
+  if (!data.jurnal) data.jurnal = [];
+
+  data.penilaian.forEach(record => {
+    if (!record.semester) record.semester = '1';
+    if (!record.tahunAjaran) record.tahunAjaran = '2026-2027';
+  });
+  data.nilaiRapor.forEach(record => {
+    if (!record.semester) record.semester = '1';
+    if (!record.tahunAjaran) record.tahunAjaran = '2026-2027';
+  });
+  data.targetMateri.forEach(target => {
+    if (!target.semester) target.semester = '1';
+    if (!target.tahunAjaran) target.tahunAjaran = '2026-2027';
+  });
+
+  return data;
+}
+
+function loadDatabaseFromFile() {
   try {
     if (!fs.existsSync(DB_FILE)) {
       const init = getInitialData();
@@ -304,50 +334,88 @@ function loadDatabase() {
       return init;
     }
     const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    const data = JSON.parse(raw);
-
-    // Pastikan key utama selalu ada
-    if (!data.kelasList) data.kelasList = MASTER_KELAS;
-    if (!data.kelompokList) data.kelompokList = MASTER_KELOMPOK;
-    if (!data.kategoriList) data.kategoriList = MASTER_KATEGORI;
-    if (!data.users) data.users = [];
-    if (!data.siswa) data.siswa = [];
-    if (!data.targetMateri) data.targetMateri = [];
-    if (!data.penilaian) data.penilaian = [];
-    if (!data.nilaiRapor) data.nilaiRapor = [];
-    if (!data.presensi) data.presensi = [];
-    if (!data.jurnal) data.jurnal = [];
-
-    // Data penilaian lama dianggap berasal dari semester ganjil TA 2026-2027.
-    data.penilaian.forEach(record => {
-      if (!record.semester) record.semester = '1';
-      if (!record.tahunAjaran) record.tahunAjaran = '2026-2027';
-    });
-    data.nilaiRapor.forEach(record => {
-      if (!record.semester) record.semester = '1';
-      if (!record.tahunAjaran) record.tahunAjaran = '2026-2027';
-    });
-    data.targetMateri.forEach(target => {
-      if (!target.semester) target.semester = '1';
-      if (!target.tahunAjaran) target.tahunAjaran = '2026-2027';
-    });
-
-    return data;
+    return normalizeDatabase(JSON.parse(raw));
   } catch (err) {
     console.error('Error membaca database:', err);
-    return getInitialData();
+    return normalizeDatabase(getInitialData());
   }
 }
 
-// Simpan DB
-function saveDatabase(data) {
+async function loadDatabase() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY wajib dikonfigurasi di Vercel');
+    }
+    return loadDatabaseFromFile();
+  }
+
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
-    return true;
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.main&select=payload`, {
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      }
+    });
+    if (!response.ok) throw new Error(`Supabase read failed: ${response.status} ${await response.text()}`);
+
+    const rows = await response.json();
+    if (rows.length && rows[0].payload) return normalizeDatabase(rows[0].payload);
+
+    const seedData = loadDatabaseFromFile();
+    if (!await saveDatabase(seedData, true)) throw new Error('Supabase seed initialization failed');
+    return seedData;
   } catch (err) {
-    console.error('Error menyimpan database:', err);
+    console.error('Error membaca database Supabase:', err);
+    throw err;
+  }
+}
+
+async function saveDatabase(data, ignoreDuplicates = false) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    if (process.env.NODE_ENV === 'production') return false;
+    try {
+      fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+      return true;
+    } catch (err) {
+      console.error('Error menyimpan database lokal:', err);
+      return false;
+    }
+  }
+
+  try {
+    const resolution = ignoreDuplicates ? 'ignore-duplicates' : 'merge-duplicates';
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?on_conflict=id`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: `resolution=${resolution},return=minimal`
+      },
+      body: JSON.stringify({ id: 'main', payload: data, updated_at: new Date().toISOString() })
+    });
+    if (!response.ok) console.error('Error menyimpan database Supabase:', response.status, await response.text());
+    return response.ok;
+  } catch (err) {
+    console.error('Error menyimpan database Supabase:', err);
     return false;
   }
+}
+
+async function loadDatabaseOrReply(res) {
+  try {
+    return await loadDatabase();
+  } catch (err) {
+    console.error('Database unavailable:', err);
+    sendJSON(res, 503, { success: false, message: 'Database belum siap. Periksa konfigurasi Supabase di Vercel.' });
+    return null;
+  }
+}
+
+async function saveDatabaseOrReply(data, res) {
+  if (await saveDatabase(data)) return true;
+  sendJSON(res, 503, { success: false, message: 'Data tidak dapat disimpan. Periksa konfigurasi dan akses database Supabase.' });
+  return false;
 }
 
 function createSession(user) {
@@ -503,7 +571,8 @@ async function handleRequest(req, res) {
       return sendJSON(res, 500, { success: false, message: 'SESSION_SECRET belum dikonfigurasi di environment production' });
     }
 
-    const db = loadDatabase();
+    const db = await loadDatabaseOrReply(res);
+    if (!db) return;
     const user = db.users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
 
     if (!user || user.password !== password) {
@@ -538,7 +607,8 @@ async function handleRequest(req, res) {
 
   // 3. Metadata Master (Kelas, Kelompok, Kategori)
   if (method === 'GET' && pathname === '/api/meta') {
-    const db = loadDatabase();
+    const db = await loadDatabaseOrReply(res);
+    if (!db) return;
     return sendJSON(res, 200, {
       success: true,
       appName: db.appName || 'TPQ BAITUSSALAM HUDA MANSURIN',
@@ -555,7 +625,8 @@ async function handleRequest(req, res) {
     }
   }
 
-  const db = loadDatabase();
+  const db = await loadDatabaseOrReply(res);
+  if (!db) return;
 
   // ==========================================
   // DASHBOARD AGGREGATE
@@ -768,7 +839,7 @@ async function handleRequest(req, res) {
       };
 
       db.jurnal.unshift(newJurnal);
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 201, { success: true, message: 'Jurnal berhasil disimpan', data: newJurnal });
     }
   }
@@ -791,7 +862,7 @@ async function handleRequest(req, res) {
       return true;
     });
 
-    saveDatabase(db);
+    if (!await saveDatabaseOrReply(db, res)) return;
     return sendJSON(res, 200, { success: true, message: 'Jurnal terpilih berhasil dihapus' });
   }
 
@@ -820,7 +891,7 @@ async function handleRequest(req, res) {
         updatedAt: new Date().toISOString()
       };
 
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Jurnal berhasil diperbarui', data: db.jurnal[index] });
     }
 
@@ -835,7 +906,7 @@ async function handleRequest(req, res) {
       }
 
       db.jurnal.splice(index, 1);
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Jurnal berhasil dihapus' });
     }
   }
@@ -930,7 +1001,7 @@ async function handleRequest(req, res) {
       }
     });
 
-    saveDatabase(db);
+    if (!await saveDatabaseOrReply(db, res)) return;
     return sendJSON(res, 200, { success: true, message: 'Presensi kelas berhasil disimpan' });
   }
 
@@ -951,7 +1022,7 @@ async function handleRequest(req, res) {
       return true;
     });
 
-    saveDatabase(db);
+    if (!await saveDatabaseOrReply(db, res)) return;
     return sendJSON(res, 200, { success: true, message: 'Presensi terpilih berhasil dihapus' });
   }
 
@@ -976,7 +1047,7 @@ async function handleRequest(req, res) {
         updatedAt: new Date().toISOString()
       };
 
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Presensi berhasil diperbarui', data: db.presensi[index] });
     }
 
@@ -991,7 +1062,7 @@ async function handleRequest(req, res) {
       }
 
       db.presensi.splice(index, 1);
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Presensi berhasil dihapus' });
     }
   }
@@ -1045,7 +1116,7 @@ async function handleRequest(req, res) {
       };
 
       db.siswa.push(newSiswa);
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 201, { success: true, message: 'Siswa berhasil ditambahkan', data: newSiswa });
     }
   }
@@ -1083,7 +1154,7 @@ async function handleRequest(req, res) {
       }
     });
 
-    saveDatabase(db);
+    if (!await saveDatabaseOrReply(db, res)) return;
     return sendJSON(res, 200, { success: true, message: `Berhasil mengimpor ${addedCount} data siswa` });
   }
 
@@ -1105,7 +1176,7 @@ async function handleRequest(req, res) {
       return true;
     });
 
-    saveDatabase(db);
+    if (!await saveDatabaseOrReply(db, res)) return;
     return sendJSON(res, 200, { success: true, message: 'Data siswa terpilih berhasil dihapus' });
   }
 
@@ -1134,7 +1205,7 @@ async function handleRequest(req, res) {
         updatedAt: new Date().toISOString()
       };
 
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Data siswa berhasil diperbarui', data: db.siswa[index] });
     }
 
@@ -1149,7 +1220,7 @@ async function handleRequest(req, res) {
       }
 
       db.siswa.splice(index, 1);
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Siswa berhasil dihapus' });
     }
   }
@@ -1200,7 +1271,7 @@ async function handleRequest(req, res) {
       };
 
       db.targetMateri.push(newTarget);
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 201, { success: true, message: 'Target materi berhasil ditambahkan', data: newTarget });
     }
   }
@@ -1237,7 +1308,7 @@ async function handleRequest(req, res) {
       }
     });
 
-    saveDatabase(db);
+    if (!await saveDatabaseOrReply(db, res)) return;
     return sendJSON(res, 200, { success: true, message: `Berhasil mengimpor ${count} target materi` });
   }
 
@@ -1257,7 +1328,7 @@ async function handleRequest(req, res) {
       return true;
     });
 
-    saveDatabase(db);
+    if (!await saveDatabaseOrReply(db, res)) return;
     return sendJSON(res, 200, { success: true, message: 'Target materi terpilih berhasil dihapus' });
   }
 
@@ -1286,7 +1357,7 @@ async function handleRequest(req, res) {
         updatedAt: new Date().toISOString()
       };
 
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Target materi berhasil diperbarui', data: db.targetMateri[index] });
     }
 
@@ -1301,7 +1372,7 @@ async function handleRequest(req, res) {
       }
 
       db.targetMateri.splice(index, 1);
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Target materi berhasil dihapus' });
     }
   }
@@ -1387,7 +1458,7 @@ async function handleRequest(req, res) {
         db.penilaian.push(record);
       }
 
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Penilaian berhasil disimpan', data: record });
     }
   }
@@ -1472,7 +1543,7 @@ async function handleRequest(req, res) {
         db.nilaiRapor.push(record);
       }
 
-      saveDatabase(db);
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Nilai rapor berhasil disimpan', data: record });
     }
   }
@@ -1523,9 +1594,7 @@ async function handleRequest(req, res) {
       };
 
       db.users.push(newGuru);
-      if (!saveDatabase(db)) {
-        return sendJSON(res, 500, { success: false, message: 'Akun tidak dapat disimpan. Gunakan database persisten untuk deployment Vercel.' });
-      }
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 201, {
         success: true,
         message: 'Akun guru berhasil dibuat',
@@ -1559,9 +1628,7 @@ async function handleRequest(req, res) {
       }
 
       db.users[index].updatedAt = new Date().toISOString();
-      if (!saveDatabase(db)) {
-        return sendJSON(res, 500, { success: false, message: 'Perubahan akun tidak dapat disimpan. Gunakan database persisten untuk deployment Vercel.' });
-      }
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, {
         success: true,
         message: 'Akun guru berhasil diperbarui',
@@ -1581,9 +1648,7 @@ async function handleRequest(req, res) {
       }
 
       db.users.splice(index, 1);
-      if (!saveDatabase(db)) {
-        return sendJSON(res, 500, { success: false, message: 'Akun tidak dapat dihapus. Gunakan database persisten untuk deployment Vercel.' });
-      }
+      if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 200, { success: true, message: 'Akun guru berhasil dihapus' });
     }
   }

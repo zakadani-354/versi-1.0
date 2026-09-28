@@ -1815,6 +1815,9 @@
             this.handleLogout();
             throw new Error(json.message || 'Sesi telah berakhir');
           }
+          if (!res.ok) {
+            throw new Error(json.message || `Permintaan gagal (HTTP ${res.status})`);
+          }
           return json;
         } catch (err) {
           console.error(`API Error ${endpoint}:`, err);

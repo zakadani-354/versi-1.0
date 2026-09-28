@@ -13,6 +13,10 @@ const crypto = require('crypto');
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, '..', 'data.json');
 const LOGO_FILE = path.join(__dirname, '..', 'logo.png');
+const SESSION_SECRET = process.env.SESSION_SECRET || (
+  process.env.NODE_ENV === 'production' ? '' : 'local-development-session-secret'
+);
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 // Master referensi
 const MASTER_KELAS = ['PAUD A', 'PAUD B', 'KELAS 1', 'KELAS 2', 'KELAS 3', 'KELAS 4', 'KELAS 5', 'KELAS 6'];
@@ -346,32 +350,40 @@ function saveDatabase(data) {
   }
 }
 
-// Session store in-memory: token -> { userId, username, nama, role, kelas, expiresAt }
-const sessions = new Map();
-
 function createSession(user) {
-  const token = 'tpq_tok_' + crypto.randomBytes(24).toString('hex');
   const sessionData = {
     userId: user.id,
     username: user.username,
     nama: user.nama,
     role: user.role,
     kelas: user.kelas,
-    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 hari
+    expiresAt: Date.now() + SESSION_TTL_MS
   };
-  sessions.set(token, sessionData);
-  return token;
+  const payload = Buffer.from(JSON.stringify(sessionData)).toString('base64url');
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
 }
 
 function verifySession(token) {
-  if (!token) return null;
-  const sess = sessions.get(token);
-  if (!sess) return null;
-  if (Date.now() > sess.expiresAt) {
-    sessions.delete(token);
+  if (!SESSION_SECRET || typeof token !== 'string') return null;
+
+  const separator = token.lastIndexOf('.');
+  if (separator < 1) return null;
+
+  const payload = token.slice(0, separator);
+  const receivedSignature = Buffer.from(token.slice(separator + 1), 'base64url');
+  const expectedSignature = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest();
+  if (receivedSignature.length !== expectedSignature.length || !crypto.timingSafeEqual(receivedSignature, expectedSignature)) {
     return null;
   }
-  return sess;
+
+  try {
+    const sessionData = JSON.parse(Buffer.from(payload, 'base64url').toString('utf-8'));
+    if (!sessionData.expiresAt || Date.now() > sessionData.expiresAt) return null;
+    return sessionData;
+  } catch (err) {
+    return null;
+  }
 }
 
 // Helper parsing Request Body (JSON)
@@ -487,6 +499,10 @@ async function handleRequest(req, res) {
       return sendJSON(res, 400, { success: false, message: 'Username dan password wajib diisi' });
     }
 
+    if (!SESSION_SECRET) {
+      return sendJSON(res, 500, { success: false, message: 'SESSION_SECRET belum dikonfigurasi di environment production' });
+    }
+
     const db = loadDatabase();
     const user = db.users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
 
@@ -517,7 +533,6 @@ async function handleRequest(req, res) {
   }
 
   if (method === 'POST' && pathname === '/api/logout') {
-    if (token) sessions.delete(token);
     return sendJSON(res, 200, { success: true, message: 'Logout berhasil' });
   }
 
@@ -1508,7 +1523,9 @@ async function handleRequest(req, res) {
       };
 
       db.users.push(newGuru);
-      saveDatabase(db);
+      if (!saveDatabase(db)) {
+        return sendJSON(res, 500, { success: false, message: 'Akun tidak dapat disimpan. Gunakan database persisten untuk deployment Vercel.' });
+      }
       return sendJSON(res, 201, {
         success: true,
         message: 'Akun guru berhasil dibuat',
@@ -1542,7 +1559,9 @@ async function handleRequest(req, res) {
       }
 
       db.users[index].updatedAt = new Date().toISOString();
-      saveDatabase(db);
+      if (!saveDatabase(db)) {
+        return sendJSON(res, 500, { success: false, message: 'Perubahan akun tidak dapat disimpan. Gunakan database persisten untuk deployment Vercel.' });
+      }
       return sendJSON(res, 200, {
         success: true,
         message: 'Akun guru berhasil diperbarui',
@@ -1562,7 +1581,9 @@ async function handleRequest(req, res) {
       }
 
       db.users.splice(index, 1);
-      saveDatabase(db);
+      if (!saveDatabase(db)) {
+        return sendJSON(res, 500, { success: false, message: 'Akun tidak dapat dihapus. Gunakan database persisten untuk deployment Vercel.' });
+      }
       return sendJSON(res, 200, { success: true, message: 'Akun guru berhasil dihapus' });
     }
   }

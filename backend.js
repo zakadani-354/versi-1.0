@@ -376,6 +376,17 @@ function verifySession(token) {
 
 // Helper parsing Request Body (JSON)
 function parseRequestBody(req) {
+  if (req.body !== undefined) {
+    if (typeof req.body === 'string') {
+      try {
+        return Promise.resolve(JSON.parse(req.body));
+      } catch (err) {
+        return Promise.resolve({});
+      }
+    }
+    return Promise.resolve(req.body || {});
+  }
+
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', chunk => {
@@ -424,8 +435,8 @@ function sendFile(res, filePath, contentType) {
   });
 }
 
-// Server HTTP
-const server = http.createServer(async (req, res) => {
+// Handler dipakai oleh server lokal dan Vercel Serverless Functions
+async function handleRequest(req, res) {
   // CORS Preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
@@ -1553,13 +1564,17 @@ const server = http.createServer(async (req, res) => {
 
   // 404 Not Found
   return sendJSON(res, 404, { success: false, message: 'Endpoint tidak ditemukan' });
-});
+}
 
-// Start Server
-server.listen(PORT, () => {
-  console.log('================================================================');
-  console.log(`TPQ BAITUSSALAM HUDA MANSURIN - SISTEM PENGELOLAAN TPQ`);
-  console.log(`Server aktif berjalan di: http://localhost:${PORT}`);
-  console.log(`Waktu mulai: ${new Date().toLocaleString('id-ID')}`);
-  console.log('================================================================');
-});
+module.exports = handleRequest;
+
+if (require.main === module) {
+  const server = http.createServer(handleRequest);
+  server.listen(PORT, () => {
+    console.log('================================================================');
+    console.log(`TPQ BAITUSSALAM HUDA MANSURIN - SISTEM PENGELOLAAN TPQ`);
+    console.log(`Server aktif berjalan di: http://localhost:${PORT}`);
+    console.log(`Waktu mulai: ${new Date().toLocaleString('id-ID')}`);
+    console.log('================================================================');
+  });
+}

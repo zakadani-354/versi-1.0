@@ -400,21 +400,6 @@
         </button>
       </form>
 
-      <!-- Akses Cepat / Demo Helper -->
-      <div class="mt-6 pt-5 border-t border-slate-100 text-center relative z-10">
-        <p class="text-xs text-slate-400 mb-2">Bantuan Masuk Cepat (Klik untuk mengisi):</p>
-        <div class="flex flex-wrap gap-2 justify-center">
-          <button type="button" onclick="app.quickFillLogin('admin', 'admin123')" class="px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition">
-            <i class="fa-solid fa-shield-halved mr-1"></i> Admin
-          </button>
-          <button type="button" onclick="app.quickFillLogin('guru_paudb', 'guru123')" class="px-2.5 py-1 text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg border border-blue-200 transition">
-            <i class="fa-solid fa-chalkboard-user mr-1"></i> Guru PAUD B
-          </button>
-          <button type="button" onclick="app.quickFillLogin('guru_k1', 'guru123')" class="px-2.5 py-1 text-xs font-semibold bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-lg border border-amber-200 transition">
-            <i class="fa-solid fa-chalkboard-user mr-1"></i> Guru KELAS 1
-          </button>
-        </div>
-      </div>
     </div>
   </section>
 
@@ -1986,12 +1971,6 @@
         }`;
         el.innerHTML = `<i class="fa-solid fa-circle-exclamation text-base"></i> <span>${msg}</span>`;
         el.classList.remove('hidden');
-      },
-
-      quickFillLogin(u, p) {
-        document.getElementById('login-username').value = u;
-        document.getElementById('login-password').value = p;
-        this.showToast(`Mengisi akun demo: ${u}`, 'info');
       },
 
       togglePasswordVisibility(id, btn) {

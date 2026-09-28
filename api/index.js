@@ -458,6 +458,11 @@ async function handleRequest(req, res) {
   const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7) : (query.token || '');
   const currentUser = verifySession(token);
 
+  if (pathname === '/api/blocked') {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end('Not found');
+  }
+
   // 1. Static Routes
   if ((method === 'GET' || method === 'HEAD') && (pathname === '/' || pathname === '/index.html')) {
     const indexPath = path.join(__dirname, '..', 'index.html');

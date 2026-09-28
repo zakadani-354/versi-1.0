@@ -844,7 +844,7 @@ async function handleRequest(req, res) {
     }
   }
 
-  if (pathname === '/api/jurnal/bulk-delete' && method === 'POST') {
+  if (pathname === '/api/jurnal-bulk-delete' && method === 'POST') {
     const body = await parseRequestBody(req);
     const { ids } = body;
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -866,8 +866,8 @@ async function handleRequest(req, res) {
     return sendJSON(res, 200, { success: true, message: 'Jurnal terpilih berhasil dihapus' });
   }
 
-  if (pathname.startsWith('/api/jurnal/')) {
-    const id = pathname.replace('/api/jurnal/', '');
+  if (pathname === '/api/jurnal' && query.id) {
+    const id = query.id;
 
     if (method === 'PUT') {
       const body = await parseRequestBody(req);
@@ -967,7 +967,7 @@ async function handleRequest(req, res) {
   }
 
   // Input Presensi Massal (Hari ini / Tanggal tertentu untuk 1 kelas)
-  if (pathname === '/api/presensi/batch' && method === 'POST') {
+  if (pathname === '/api/presensi-batch' && method === 'POST') {
     const body = await parseRequestBody(req);
     const { tanggal, kelas, items } = body;
 
@@ -1005,7 +1005,7 @@ async function handleRequest(req, res) {
     return sendJSON(res, 200, { success: true, message: 'Presensi kelas berhasil disimpan' });
   }
 
-  if (pathname === '/api/presensi/bulk-delete' && method === 'POST') {
+  if (pathname === '/api/presensi-bulk-delete' && method === 'POST') {
     const body = await parseRequestBody(req);
     const { ids } = body;
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -1026,8 +1026,8 @@ async function handleRequest(req, res) {
     return sendJSON(res, 200, { success: true, message: 'Presensi terpilih berhasil dihapus' });
   }
 
-  if (pathname.startsWith('/api/presensi/')) {
-    const id = pathname.replace('/api/presensi/', '');
+  if (pathname === '/api/presensi' && query.id) {
+    const id = query.id;
 
     if (method === 'PUT') {
       const body = await parseRequestBody(req);
@@ -1122,7 +1122,7 @@ async function handleRequest(req, res) {
   }
 
   // Bulk Import Siswa via Excel/CSV
-  if (pathname === '/api/siswa/bulk-import' && method === 'POST') {
+  if (pathname === '/api/siswa-bulk-import' && method === 'POST') {
     const body = await parseRequestBody(req);
     const { items } = body;
 
@@ -1158,7 +1158,7 @@ async function handleRequest(req, res) {
     return sendJSON(res, 200, { success: true, message: `Berhasil mengimpor ${addedCount} data siswa` });
   }
 
-  if (pathname === '/api/siswa/bulk-delete' && method === 'POST') {
+  if (pathname === '/api/siswa-bulk-delete' && method === 'POST') {
     const body = await parseRequestBody(req);
     const { ids } = body;
 
@@ -1180,8 +1180,8 @@ async function handleRequest(req, res) {
     return sendJSON(res, 200, { success: true, message: 'Data siswa terpilih berhasil dihapus' });
   }
 
-  if (pathname.startsWith('/api/siswa/')) {
-    const id = pathname.replace('/api/siswa/', '');
+  if (pathname === '/api/siswa' && query.id) {
+    const id = query.id;
 
     if (method === 'PUT') {
       const body = await parseRequestBody(req);
@@ -1277,7 +1277,7 @@ async function handleRequest(req, res) {
   }
 
   // Bulk Import Target Materi
-  if (pathname === '/api/target-materi/bulk-import' && method === 'POST') {
+  if (pathname === '/api/target-materi-bulk-import' && method === 'POST') {
     const body = await parseRequestBody(req);
     const { items } = body;
 
@@ -1312,7 +1312,7 @@ async function handleRequest(req, res) {
     return sendJSON(res, 200, { success: true, message: `Berhasil mengimpor ${count} target materi` });
   }
 
-  if (pathname === '/api/target-materi/bulk-delete' && method === 'POST') {
+  if (pathname === '/api/target-materi-bulk-delete' && method === 'POST') {
     const body = await parseRequestBody(req);
     const { ids } = body;
 
@@ -1332,8 +1332,8 @@ async function handleRequest(req, res) {
     return sendJSON(res, 200, { success: true, message: 'Target materi terpilih berhasil dihapus' });
   }
 
-  if (pathname.startsWith('/api/target-materi/')) {
-    const id = pathname.replace('/api/target-materi/', '');
+  if (pathname === '/api/target-materi' && query.id) {
+    const id = query.id;
 
     if (method === 'PUT') {
       const body = await parseRequestBody(req);
@@ -1603,12 +1603,12 @@ async function handleRequest(req, res) {
     }
   }
 
-  if (pathname.startsWith('/api/guru/')) {
+  if (pathname === '/api/guru' && query.id) {
     if (currentUser.role !== 'admin') {
       return sendJSON(res, 403, { success: false, message: 'Akses terbatas untuk Super Admin' });
     }
 
-    const id = pathname.replace('/api/guru/', '');
+    const id = query.id;
 
     if (method === 'PUT') {
       const body = await parseRequestBody(req);

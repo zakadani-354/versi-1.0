@@ -2459,7 +2459,7 @@
 
         try {
           if (id) {
-            await this.api(`/api/jurnal/${id}`, 'PUT', data);
+            await this.api(`/api/jurnal?id=${encodeURIComponent(id)}`, 'PUT', data);
             this.showToast('Jurnal berhasil diperbarui', 'success');
           } else {
             await this.api('/api/jurnal', 'POST', data);
@@ -2475,7 +2475,7 @@
       async deleteJurnal(id) {
         if (!confirm('Yakin ingin menghapus jurnal ini?')) return;
         try {
-          await this.api(`/api/jurnal/${id}`, 'DELETE');
+          await this.api(`/api/jurnal?id=${encodeURIComponent(id)}`, 'DELETE');
           this.showToast('Jurnal berhasil dihapus', 'success');
           this.loadJurnal();
         } catch (err) {
@@ -2489,7 +2489,7 @@
         if (!confirm(`Hapus ${ids.length} jurnal terpilih secara bersamaan?`)) return;
 
         try {
-          await this.api('/api/jurnal/bulk-delete', 'POST', { ids });
+            await this.api('/api/jurnal-bulk-delete', 'POST', { ids });
           this.showToast(`${ids.length} jurnal berhasil dihapus`, 'success');
           this.loadJurnal();
         } catch (err) {
@@ -2655,7 +2655,7 @@
         }
 
         try {
-          const res = await this.api('/api/presensi/batch', 'POST', {
+          const res = await this.api('/api/presensi-batch', 'POST', {
             tanggal,
             kelas,
             items: this.presensiInputData
@@ -2766,7 +2766,7 @@
         };
 
         try {
-          await this.api(`/api/presensi/${id}`, 'PUT', data);
+          await this.api(`/api/presensi?id=${encodeURIComponent(id)}`, 'PUT', data);
           this.showToast('Presensi berhasil diperbarui', 'success');
           this.closeModal('modal-presensi');
           this.loadPresensiHistory();
@@ -2778,7 +2778,7 @@
       async deletePresensi(id) {
         if (!confirm('Hapus record presensi ini?')) return;
         try {
-          await this.api(`/api/presensi/${id}`, 'DELETE');
+          await this.api(`/api/presensi?id=${encodeURIComponent(id)}`, 'DELETE');
           this.showToast('Presensi berhasil dihapus', 'success');
           this.loadPresensiHistory();
         } catch (e) {
@@ -2792,7 +2792,7 @@
         if (!confirm(`Hapus ${ids.length} record presensi terpilih?`)) return;
 
         try {
-          await this.api('/api/presensi/bulk-delete', 'POST', { ids });
+          await this.api('/api/presensi-bulk-delete', 'POST', { ids });
           this.showToast(`${ids.length} presensi berhasil dihapus`, 'success');
           this.loadPresensiHistory();
         } catch (e) {
@@ -2906,7 +2906,7 @@
 
         try {
           if (id) {
-            await this.api(`/api/siswa/${id}`, 'PUT', data);
+            await this.api(`/api/siswa?id=${encodeURIComponent(id)}`, 'PUT', data);
             this.showToast('Biodata santri berhasil diperbarui', 'success');
           } else {
             await this.api('/api/siswa', 'POST', data);
@@ -2922,7 +2922,7 @@
       async deleteSiswa(id) {
         if (!confirm('Yakin ingin menghapus santri ini dari database?')) return;
         try {
-          await this.api(`/api/siswa/${id}`, 'DELETE');
+          await this.api(`/api/siswa?id=${encodeURIComponent(id)}`, 'DELETE');
           this.showToast('Santri berhasil dihapus', 'success');
           this.loadSiswa();
         } catch (e) {
@@ -2936,7 +2936,7 @@
         if (!confirm(`Hapus ${ids.length} santri terpilih secara permanen?`)) return;
 
         try {
-          await this.api('/api/siswa/bulk-delete', 'POST', { ids });
+          await this.api('/api/siswa-bulk-delete', 'POST', { ids });
           this.showToast(`${ids.length} santri berhasil dihapus`, 'success');
           this.loadSiswa();
         } catch (e) {
@@ -3028,7 +3028,7 @@
       async submitImportSiswa() {
         if (!this.parsedImportSiswa || this.parsedImportSiswa.length === 0) return;
         try {
-          const res = await this.api('/api/siswa/bulk-import', 'POST', { items: this.parsedImportSiswa });
+          const res = await this.api('/api/siswa-bulk-import', 'POST', { items: this.parsedImportSiswa });
           this.showToast(res.message || 'Santri berhasil diimpor', 'success');
           this.closeModal('modal-import-siswa');
           this.loadSiswa();
@@ -3167,7 +3167,7 @@
 
         try {
           if (id) {
-            await this.api(`/api/target-materi/${id}`, 'PUT', data);
+            await this.api(`/api/target-materi?id=${encodeURIComponent(id)}`, 'PUT', data);
             this.showToast('Target materi berhasil diperbarui', 'success');
           } else {
             await this.api('/api/target-materi', 'POST', data);
@@ -3183,7 +3183,7 @@
       async deleteTarget(id) {
         if (!confirm('Yakin ingin menghapus target materi ini?')) return;
         try {
-          await this.api(`/api/target-materi/${id}`, 'DELETE');
+          await this.api(`/api/target-materi?id=${encodeURIComponent(id)}`, 'DELETE');
           this.showToast('Target berhasil dihapus', 'success');
           this.loadTargetMateri();
         } catch (e) {
@@ -3197,7 +3197,7 @@
         if (!confirm(`Hapus ${ids.length} target materi terpilih?`)) return;
 
         try {
-          await this.api('/api/target-materi/bulk-delete', 'POST', { ids });
+          await this.api('/api/target-materi-bulk-delete', 'POST', { ids });
           this.showToast(`${ids.length} target berhasil dihapus`, 'success');
           this.loadTargetMateri();
         } catch (e) {
@@ -3273,7 +3273,7 @@
         try {
           const academic = this.getAcademicParams();
           const items = this.parsedImportTarget.map(item => ({ ...item, ...academic }));
-          const res = await this.api('/api/target-materi/bulk-import', 'POST', { items });
+          const res = await this.api('/api/target-materi-bulk-import', 'POST', { items });
           this.showToast(res.message || 'Target berhasil diimpor', 'success');
           this.closeModal('modal-import-target');
           this.loadTargetMateri();
@@ -3898,7 +3898,7 @@
 
         try {
           if (id) {
-            await this.api(`/api/guru/${id}`, 'PUT', data);
+            await this.api(`/api/guru?id=${encodeURIComponent(id)}`, 'PUT', data);
             this.showToast('Akun guru berhasil diperbarui', 'success');
           } else {
             if (!data.password) {
@@ -3918,7 +3918,7 @@
       async deleteGuru(id) {
         if (!confirm('Yakin ingin menghapus akun guru ini? Guru tidak akan bisa login lagi.')) return;
         try {
-          await this.api(`/api/guru/${id}`, 'DELETE');
+          await this.api(`/api/guru?id=${encodeURIComponent(id)}`, 'DELETE');
           this.showToast('Akun guru berhasil dihapus', 'success');
           this.loadGuru();
         } catch (e) {

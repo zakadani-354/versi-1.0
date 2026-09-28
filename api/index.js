@@ -11,8 +11,8 @@ const url = require('url');
 const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
-const DB_FILE = path.join(__dirname, 'data.json');
-const LOGO_FILE = path.join(__dirname, 'logo.png');
+const DB_FILE = path.join(__dirname, '..', 'data.json');
+const LOGO_FILE = path.join(__dirname, '..', 'logo.png');
 
 // Master referensi
 const MASTER_KELAS = ['PAUD A', 'PAUD B', 'KELAS 1', 'KELAS 2', 'KELAS 3', 'KELAS 4', 'KELAS 5', 'KELAS 6'];
@@ -460,7 +460,7 @@ async function handleRequest(req, res) {
 
   // 1. Static Routes
   if ((method === 'GET' || method === 'HEAD') && (pathname === '/' || pathname === '/index.html')) {
-    const indexPath = path.join(__dirname, 'index.html');
+    const indexPath = path.join(__dirname, '..', 'index.html');
     return sendFile(res, indexPath, 'text/html; charset=utf-8');
   }
 

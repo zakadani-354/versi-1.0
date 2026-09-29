@@ -26,8 +26,10 @@ const MASTER_KELAS = ['PAUD A', 'PAUD B', 'KELAS 1', 'KELAS 2', 'KELAS 3', 'KELA
 const MASTER_KELOMPOK = ['Baitu Taqwa', 'Almansuriin', 'Al Huda', 'Al Malik', 'Miftahul Jannah', 'Baitul Makmur'];
 const MASTER_KATEGORI = [
   'Bacaan/Tilawah',
-  'Ilmu Tajwid',
   'Tahsinul Kitabah/Menulis',
+  'Hafalan Surat',
+  'Hafalan Doa',
+  'Ilmu Tajwid',
   'Praktek Ibadah',
   'Kefahaman Agama',
   'Adab Harian',

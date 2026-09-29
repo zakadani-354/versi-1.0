@@ -1996,6 +1996,10 @@
         this.token = '';
         this.currentUser = null;
         localStorage.removeItem('tpq_token');
+        document.getElementById('form-login').reset();
+        const passwordInput = document.getElementById('login-password');
+        passwordInput.type = 'password';
+        document.querySelector('#form-login button[onclick*="togglePasswordVisibility"] i').className = 'fa-solid fa-eye';
         this.showLogin();
       },
 

@@ -1023,6 +1023,9 @@
             <button onclick="app.saveAllEvaluasi()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
               <i class="fa-solid fa-floppy-disk"></i> Simpan Semua Pencapaian
             </button>
+            <button onclick="app.completeAllEvaluasi()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
+              <i class="fa-solid fa-check-double"></i> Tuntas Semua
+            </button>
             <button onclick="app.showCapaianVisualization()" class="px-3.5 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition active:scale-95">
               <i class="fa-solid fa-chart-column"></i> Lihat Visualisasi
             </button>
@@ -3647,6 +3650,21 @@
         }
         window.print();
         window.setTimeout(() => document.body.classList.remove('printing-capaian'), 500);
+      },
+
+      async completeAllEvaluasi() {
+        const targets = this.currentEvaluationTargets || [];
+        if (!document.getElementById('eval-select-siswa').value || targets.length === 0) {
+          this.showToast('Tidak ada pencapaian materi untuk dituntaskan', 'error');
+          return;
+        }
+
+        targets.forEach(target => {
+          const statusSelect = document.getElementById(`eval-status-${target.id}`);
+          if (statusSelect) statusSelect.value = 'Tuntas';
+        });
+
+        await this.saveAllEvaluasi();
       },
 
       async saveAllEvaluasi() {

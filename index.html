@@ -1032,13 +1032,11 @@
                   <!-- Diisi otomatis dari list siswa kelas aktif -->
                 </select>
               </div>
-              <div class="w-full sm:w-auto sm:min-w-[300px] rounded-lg bg-emerald-800 px-4 py-3 text-white">
-                <h3 class="text-sm font-bold uppercase">Perkembangan Pencapaian Santri</h3>
-                <p id="eval-visualization-period" class="text-xs font-medium text-emerald-100 mt-1">Semester Ganjil | Tahun Ajaran 2026-2027</p>
-                <p class="text-sm font-semibold mt-1"><span id="eval-student-percentage">0%</span> Tuntas <span id="eval-student-progress" class="text-emerald-100">(0/0 Tuntas)</span></p>
+              <div class="text-xs text-slate-500 font-medium">
+                <span id="eval-visualization-period" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs">Semester Ganjil | Tahun Ajaran 2026-2027</span>
               </div>
             </div>
-            <div class="flex flex-wrap items-center justify-end gap-2">
+            <div class="flex flex-wrap items-center justify-start gap-2 pt-2 border-t border-slate-100">
               <button onclick="app.saveAllEvaluasi()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
                 <i class="fa-solid fa-floppy-disk"></i> Simpan Semua Pencapaian
               </button>
@@ -1058,10 +1056,15 @@
           <div id="capaian-workspace" class="grid grid-cols-1 xl:grid-cols-[minmax(300px,0.9fr)_minmax(0,2fr)] gap-4 items-start">
           <div id="eval-visualization" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 card-print">
             <div id="eval-visualization-screen" class="mb-3">
-              <div id="eval-student-card" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-950">
+              <div id="eval-student-card" class="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-100/60 p-4 text-emerald-950 shadow-sm">
                 <div class="min-w-0">
-                  <h3 id="eval-student-name" class="text-sm font-bold text-emerald-950 truncate">Nama Santri</h3>
-                  <p id="eval-student-meta" class="text-xs font-medium text-emerald-800 mt-0.5">Kelas: PAUD B | Kelompok: Baitu Taqwa</p>
+                  <h3 id="eval-student-name" class="text-base font-bold text-emerald-950 truncate">Nama Santri</h3>
+                  <p id="eval-student-meta" class="text-xs font-semibold text-emerald-800 mt-0.5">KELAS : PAUD B | KELOMPOK : Baitu Taqwa | TTL : -</p>
+                  <div class="mt-3 pt-3 border-t border-emerald-200/80 flex items-baseline gap-2 flex-wrap">
+                    <span id="eval-student-percentage" class="text-3xl sm:text-4xl font-black text-emerald-700 tracking-tight">0%</span>
+                    <span class="text-base sm:text-lg font-extrabold text-emerald-900">Tuntas</span>
+                    <span id="eval-student-progress" class="text-xs sm:text-sm font-bold text-emerald-800 bg-emerald-200/80 px-2.5 py-1 rounded-full border border-emerald-300 shadow-xs">(0/0 Tuntas)</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3530,7 +3533,7 @@
             const siswa = res.siswaList && res.siswaList[0];
             if (siswa) {
               document.getElementById('eval-student-name').textContent = siswa.nama;
-              document.getElementById('eval-student-meta').textContent = `Kelas: ${siswa.kelas} | Kelompok: ${siswa.kelompok} | TTL: ${siswa.ttl || '-'}`;
+              document.getElementById('eval-student-meta').textContent = `KELAS : ${siswa.kelas} | KELOMPOK : ${siswa.kelompok} | TTL : ${siswa.ttl || '-'}`;
             }
 
             const targets = res.targetList || [];

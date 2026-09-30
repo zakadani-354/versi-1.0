@@ -1523,6 +1523,11 @@ async function handleRequest(req, res) {
         success: true,
         siswaList,
         kategoriList: MASTER_KATEGORI,
+        guruList: siswaId && siswaList[0]
+          ? db.users
+            .filter(user => user.role === 'guru' && user.kelas === siswaList[0].kelas)
+            .map(user => ({ nama: user.nama, kelas: user.kelas }))
+          : [],
         nilaiAkhlaqAdab: db.nilaiAkhlaqAdab.find(n =>
           n.siswaId === siswaId &&
           n.semester === semester &&

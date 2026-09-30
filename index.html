@@ -1211,6 +1211,18 @@
                 3. Alpa&nbsp;&nbsp;&nbsp;&nbsp;<span id="formal-absensi-alpa">0</span>&nbsp;hari
               </div>
             </div>
+            <div class="grid grid-cols-2 gap-8 mt-10 text-sm" style="font-family: Georgia, 'Times New Roman', serif;">
+              <div class="text-center">
+                <p>Guru Kelas</p>
+                <div class="h-16"></div>
+                <p class="font-bold underline"><span id="formal-teacher-name">-</span></p>
+              </div>
+              <div class="text-center">
+                <p>Orang Tua/Wali</p>
+                <div class="h-16"></div>
+                <p class="font-bold underline">(................................)</p>
+              </div>
+            </div>
           </div>
 
           <div id="rapor-student-card" class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-5 rounded-2xl shadow-md">
@@ -3929,6 +3941,10 @@
           ]);
           const penilaians = capaianRes.penilaian || [];
           const student = raporRes.siswaList?.[0] || capaianRes.siswaList?.[0];
+          const teacherNames = (raporRes.guruList || [])
+            .filter(teacher => teacher.kelas === student?.kelas)
+            .map(teacher => teacher.nama)
+            .join(' / ');
           const categories = raporRes.kategoriList || this.meta.kategoriList || [];
           const raporRecords = raporRes.nilaiRapor || [];
           const presensiList = presensiRes.data || [];
@@ -3937,6 +3953,7 @@
           const alpa = presensiList.filter(item => (item.status || '').toLowerCase() === 'alpa').length;
 
           document.getElementById('formal-student-name').textContent = student?.nama || '-';
+          document.getElementById('formal-teacher-name').textContent = teacherNames || '-';
           document.getElementById('formal-semester-title').textContent = `SEMESTER ${semester === '2' ? 'GENAP' : 'GANJIL'}`;
           document.getElementById('formal-year-title').textContent = `TA ${tahunAjaran}`;
           document.getElementById('formal-absensi-sakit').textContent = sakit;

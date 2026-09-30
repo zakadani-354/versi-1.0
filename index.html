@@ -1489,7 +1489,7 @@
       </div>
       <form id="form-target" onsubmit="app.saveTarget(event)" class="space-y-4">
         <input type="hidden" id="modal-target-id">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Kelas</label>
             <select id="modal-target-kelas" required class="w-full text-xs font-semibold p-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none">
@@ -1500,6 +1500,13 @@
             <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Kategori Materi</label>
             <select id="modal-target-kategori" required class="w-full text-xs font-semibold p-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none">
               <!-- Diisi via JS (7 Kategori) -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Semester</label>
+            <select id="modal-target-semester" required class="w-full text-xs font-semibold p-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none">
+              <option value="1">Ganjil</option>
+              <option value="2">Genap</option>
             </select>
           </div>
         </div>
@@ -3160,6 +3167,7 @@
         }
 
         document.getElementById('modal-target-kategori').value = t ? t.kategori : 'Bacaan/Tilawah';
+        document.getElementById('modal-target-semester').value = t ? (t.semester || '1') : document.getElementById('academic-semester').value;
         document.getElementById('modal-target-judul').value = t ? t.judul : '';
         document.getElementById('modal-target-uraian').value = t ? (t.uraian || '') : '';
 
@@ -3174,12 +3182,14 @@
       async saveTarget(e) {
         e.preventDefault();
         const id = document.getElementById('modal-target-id').value;
+        const { tahunAjaran } = this.getAcademicParams();
         const data = {
           kelas: document.getElementById('modal-target-kelas').value,
           kategori: document.getElementById('modal-target-kategori').value,
+          semester: document.getElementById('modal-target-semester').value,
+          tahunAjaran,
           judul: document.getElementById('modal-target-judul').value,
-          uraian: document.getElementById('modal-target-uraian').value,
-          ...this.getAcademicParams()
+          uraian: document.getElementById('modal-target-uraian').value
         };
 
         try {

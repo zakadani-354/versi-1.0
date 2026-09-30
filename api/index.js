@@ -1399,7 +1399,11 @@ async function handleRequest(req, res) {
       if (kelas && kelas !== 'ALL') siswaList = siswaList.filter(s => s.kelas === kelas);
       if (siswaId) siswaList = siswaList.filter(s => s.id === siswaId);
 
-      const targetList = db.targetMateri.filter(t => !kelas || kelas === 'ALL' || t.kelas === kelas);
+      const targetList = db.targetMateri.filter(t =>
+        (!kelas || kelas === 'ALL' || t.kelas === kelas) &&
+        t.semester === semester &&
+        t.tahunAjaran === tahunAjaran
+      );
 
       return sendJSON(res, 200, {
         success: true,

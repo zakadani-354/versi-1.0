@@ -1020,27 +1020,30 @@
 
         <!-- 5B. SUB-TAB: PENCAPAIAN TARGET PER SANTRI -->
         <div id="target-view-capaian" class="hidden space-y-4">
-          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3 no-print">
-            <div class="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
-              <label for="eval-filter-kelas" class="text-xs font-bold text-slate-600 hidden">Filter Kelas:</label>
-              <select id="eval-filter-kelas" onchange="app.loadEvaluasiMode()" class="hidden max-w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
-                <option value="ALL">Semua Kelas</option>
-              </select>
-              <label class="text-xs font-bold text-slate-600">Pilih Santri:</label>
-              <select id="eval-select-siswa" onchange="app.loadEvaluasiSiswa()" class="max-w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
-                <!-- Diisi otomatis dari list siswa kelas aktif -->
-              </select>
+          <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-3 no-print">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="flex flex-wrap items-center gap-2 min-w-0 max-w-full">
+                <label for="eval-filter-kelas" class="text-xs font-bold text-slate-600 hidden">Filter Kelas:</label>
+                <select id="eval-filter-kelas" onchange="app.loadEvaluasiMode()" class="hidden max-w-full text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
+                  <option value="ALL">Semua Kelas</option>
+                </select>
+                <label class="text-xs font-bold text-slate-600">Pilih Santri:</label>
+                <select id="eval-select-siswa" onchange="app.loadEvaluasiSiswa()" class="max-w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
+                  <!-- Diisi otomatis dari list siswa kelas aktif -->
+                </select>
+              </div>
+              <div class="min-w-[280px] rounded-xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-slate-900 px-4 py-3 text-white shadow-sm">
+                <h3 class="text-xs font-black uppercase">Perkembangan Pencapaian Santri</h3>
+                <p id="eval-visualization-period" class="text-xs font-semibold text-emerald-100 mt-1">Semester Ganjil | Tahun Ajaran 2026-2027</p>
+                <p class="text-sm font-bold mt-1"><span id="eval-student-percentage">0%</span> Tuntas <span id="eval-student-progress" class="text-emerald-100">(0/0 Tuntas)</span></p>
+              </div>
             </div>
-            
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center justify-end gap-2">
               <button onclick="app.saveAllEvaluasi()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
                 <i class="fa-solid fa-floppy-disk"></i> Simpan Semua Pencapaian
               </button>
               <button onclick="app.completeAllEvaluasi()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
                 <i class="fa-solid fa-check-double"></i> Tuntas Semua
-              </button>
-              <button onclick="app.showCapaianVisualization()" class="px-3.5 py-2 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition active:scale-95">
-                <i class="fa-solid fa-chart-column"></i> Lihat Visualisasi
               </button>
               <button onclick="app.shareCapaianVisualization()" class="px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
                 <i class="fa-solid fa-share-nodes"></i> Bagikan
@@ -1054,20 +1057,11 @@
           <!-- Visualisasi Capaian yang Siap Dibagikan -->
           <div id="capaian-workspace" class="grid grid-cols-1 xl:grid-cols-[minmax(300px,0.9fr)_minmax(0,2fr)] gap-4 items-start">
           <div id="eval-visualization" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 card-print">
-            <div id="eval-visualization-screen" class="flex flex-col gap-3 mb-4">
-              <div>
-                <p class="text-[11px] font-bold uppercase tracking-wider text-amber-600">Visualisasi untuk Orang Tua</p>
-                <h3 class="text-base sm:text-lg font-black text-slate-800">Perkembangan Pencapaian Santri</h3>
-                <p id="eval-visualization-period" class="text-xs text-slate-500 mt-0.5">Semester Ganjil | Tahun Ajaran 2026-2027</p>
-              </div>
-              <div id="eval-student-card" class="flex items-center justify-between gap-3 border-y border-slate-100 py-2">
+            <div id="eval-visualization-screen" class="mb-3">
+              <div id="eval-student-card" class="rounded-xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-slate-900 p-3 text-white shadow-sm">
                 <div class="min-w-0">
-                  <h3 id="eval-student-name" class="text-sm font-bold text-slate-800 truncate">Nama Santri</h3>
-                  <p id="eval-student-meta" class="text-[11px] text-slate-500 mt-0.5">Kelas: PAUD B | Kelompok: Baitu Taqwa</p>
-                </div>
-                <div class="shrink-0 text-right">
-                  <span class="block text-[10px] text-slate-500">Tuntas</span>
-                  <span id="eval-student-percentage" class="text-lg font-black text-emerald-700">0%</span>
+                  <h3 id="eval-student-name" class="text-sm font-bold text-white truncate">Nama Santri</h3>
+                  <p id="eval-student-meta" class="text-[11px] font-semibold text-emerald-100 mt-0.5">Kelas: PAUD B | Kelompok: Baitu Taqwa</p>
                 </div>
               </div>
             </div>
@@ -1103,12 +1097,12 @@
               </table>
             </div>
             <div id="eval-visualization-screen-body" class="grid grid-cols-1 gap-3 items-start">
-              <div class="h-56 bg-slate-50 rounded-xl p-3">
+              <div class="h-72 bg-slate-50 rounded-xl p-3">
                 <canvas id="chart-capaian-santri"></canvas>
               </div>
               <div>
                 <h4 class="text-xs font-black uppercase text-slate-700 border-b border-slate-200 pb-2 mb-1">Daftar Materi Tuntas</h4>
-                <div id="eval-target-summary" class="max-h-64 overflow-y-auto divide-y divide-slate-100"></div>
+                <div id="eval-target-summary" class="h-72 overflow-y-auto overscroll-contain divide-y divide-slate-100 pr-1"></div>
               </div>
             </div>
           </div>
@@ -3550,6 +3544,7 @@
             if (targets.length === 0) {
               tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400">Belum ada target materi untuk kelas santri ini</td></tr>`;
               document.getElementById('eval-student-percentage').textContent = '0%';
+              document.getElementById('eval-student-progress').textContent = '(0/0 Tuntas)';
               this.renderCapaianVisualization([], []);
               return;
             }
@@ -3588,7 +3583,8 @@
             });
 
             const percent = targets.length > 0 ? Math.round((tuntasCount / targets.length) * 100) : 0;
-            document.getElementById('eval-student-percentage').textContent = `${percent}% (${tuntasCount}/${targets.length} Tuntas)`;
+            document.getElementById('eval-student-percentage').textContent = `${percent}%`;
+            document.getElementById('eval-student-progress').textContent = `(${tuntasCount}/${targets.length} Tuntas)`;
             this.renderCapaianVisualization(targets, penilaians);
           }
         } catch (e) {
@@ -3615,10 +3611,9 @@
 
         const total = targets.length;
         const complete = targetData.filter(item => item.status === 'Tuntas').length;
-        const inProgress = targetData.filter(item => item.status === 'Sedang Proses').length;
         const period = this.getAcademicParams();
         const semesterName = period.semester === '2' ? 'Semester Genap' : 'Semester Ganjil';
-        document.getElementById('eval-visualization-period').textContent = `${semesterName} | Tahun Ajaran ${period.tahunAjaran} | ${complete} tuntas, ${inProgress} sedang dipelajari, ${total - complete - inProgress} belum dimulai`;
+        document.getElementById('eval-visualization-period').textContent = `${semesterName} | Tahun Ajaran ${period.tahunAjaran}`;
 
         const monthName = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
         const studentName = document.getElementById('eval-student-name')?.textContent || 'Nama Santri';
@@ -3651,11 +3646,6 @@
         belumTuntasBody.innerHTML = belumTuntasItems.length
           ? belumTuntasItems.map((item, index) => printRow(item, index, true) + (item.catatan ? `<tr><td></td><td colspan="3">Catatan: ${item.catatan}</td></tr>` : '')).join('')
           : '<tr><td colspan="4">Semua target materi sudah tuntas.</td></tr>';
-        const statusStyle = {
-          Tuntas: { icon: 'fa-circle-check', color: 'emerald', label: 'Sudah tuntas' },
-          'Sedang Proses': { icon: 'fa-person-walking', color: 'amber', label: 'Sedang dipelajari' },
-          Belum: { icon: 'fa-circle-arrow-right', color: 'slate', label: 'Belum dimulai' }
-        };
         summary.innerHTML = tuntasItems.length ? tuntasItems.map(item => `
           <div class="flex items-center gap-2.5 py-2">
             <span class="w-5 h-5 rounded bg-emerald-600 text-white flex items-center justify-center shrink-0"><i class="fa-solid fa-check text-[10px]"></i></span>
@@ -3674,7 +3664,7 @@
           targetData.filter(item => item.status !== 'Tuntas' && item.status !== 'Sedang Proses').length
         ];
         const statusLabels = ['Materi Tuntas', 'Sedang Proses', 'Belum Tuntas'];
-        const statusColors = ['#10b981', '#f59e0b', '#94a3b8'];
+        const statusColors = ['#059669', '#f59e0b', '#ef4444'];
         const pieValueLabels = {
           id: 'capaianPieValueLabels',
           afterDraw: chartInstance => {
@@ -3697,7 +3687,7 @@
           }
         };
         this.charts.capaian = new Chart(canvas, {
-          type: 'pie',
+          type: 'doughnut',
           data: {
             labels: statusLabels,
             datasets: [{
@@ -3715,7 +3705,7 @@
               legend: {
                 display: true,
                 position: 'bottom',
-                labels: { boxWidth: 12, font: { size: 10 } }
+                labels: { boxWidth: 36, boxHeight: 36, padding: 18, font: { size: 30, weight: 'bold' } }
               },
               tooltip: {
                 callbacks: {
@@ -3735,7 +3725,7 @@
         if (printCanvas) {
           if (this.charts.capaianPrint) this.charts.capaianPrint.destroy();
           this.charts.capaianPrint = new Chart(printCanvas, {
-            type: 'pie',
+            type: 'doughnut',
             data: {
               labels: statusLabels,
               datasets: [{

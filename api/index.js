@@ -723,9 +723,34 @@ async function handleRequest(req, res) {
       };
     });
 
+    // Resolve legacy attendance records whose student IDs are no longer present.
+    const normalizeKey = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const studentIds = new Set(db.siswa.map(s => normalizeKey(s.id)));
+    const studentIdByNameClass = new Map();
+    db.siswa.forEach(s => {
+      const key = `${normalizeKey(s.kelas)}|${normalizeKey(s.nama)}`;
+      if (studentIdByNameClass.has(key)) {
+        studentIdByNameClass.set(key, null);
+      } else {
+        studentIdByNameClass.set(key, normalizeKey(s.id));
+      }
+    });
+
+    const attendanceByStudent = new Map();
+    presensiFiltered.forEach(record => {
+      let studentId = normalizeKey(record.siswaId);
+      if (!studentIds.has(studentId)) {
+        const key = `${normalizeKey(record.kelas)}|${normalizeKey(record.nama)}`;
+        studentId = studentIdByNameClass.get(key);
+      }
+      if (!studentId) return;
+      if (!attendanceByStudent.has(studentId)) attendanceByStudent.set(studentId, []);
+      attendanceByStudent.get(studentId).push(record);
+    });
+
     // Rekap Per Siswa
     const perSiswa = siswaFiltered.map(s => {
-      const siswaPresensi = presensiFiltered.filter(p => p.siswaId === s.id);
+      const siswaPresensi = attendanceByStudent.get(normalizeKey(s.id)) || [];
       const totalSesi = siswaPresensi.length;
       const sHadir = siswaPresensi.filter(p => (p.status || '').toLowerCase() === 'hadir').length;
       const sSakit = siswaPresensi.filter(p => (p.status || '').toLowerCase() === 'sakit').length;

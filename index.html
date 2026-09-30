@@ -1010,6 +1010,10 @@
         <div id="target-view-capaian" class="hidden space-y-4">
           <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3 no-print">
             <div class="flex items-center gap-2">
+              <label for="eval-filter-kelas" class="text-xs font-bold text-slate-600 hidden">Filter Kelas:</label>
+              <select id="eval-filter-kelas" onchange="app.loadEvaluasiMode()" class="hidden text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="ALL">Semua Kelas</option>
+              </select>
               <label class="text-xs font-bold text-slate-600">Pilih Santri:</label>
               <select id="eval-select-siswa" onchange="app.loadEvaluasiSiswa()" class="text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
                 <!-- Diisi otomatis dari list siswa kelas aktif -->
@@ -1866,6 +1870,7 @@
         fill('presensi-filter-kelas', this.meta.kelasList, 'Semua Kelas');
         fill('siswa-filter-kelas', this.meta.kelasList, 'Semua Kelas');
         fill('target-filter-kelas', this.meta.kelasList, 'Semua Kelas');
+        fill('eval-filter-kelas', this.meta.kelasList, 'Semua Kelas');
         fill('modal-jurnal-kelas', this.meta.kelasList);
         fill('modal-siswa-kelas', this.meta.kelasList);
         fill('modal-target-kelas', this.meta.kelasList);
@@ -3296,9 +3301,13 @@
 
       // Sub-tab Penilaian Santri (Raport)
       async loadEvaluasiMode() {
-        const kelas = this.currentUser.role === 'guru' ? this.currentUser.kelas : 'ALL';
+        const isGuru = this.currentUser.role === 'guru';
+        const classFilter = document.getElementById('eval-filter-kelas');
+        classFilter.previousElementSibling.classList.toggle('hidden', isGuru);
+        classFilter.classList.toggle('hidden', isGuru);
+        const kelas = isGuru ? this.currentUser.kelas : classFilter.value;
         try {
-          const res = await this.api(`/api/siswa?kelas=${kelas}`);
+          const res = await this.api(`/api/siswa?kelas=${encodeURIComponent(kelas)}`);
           const siswaSelect = document.getElementById('eval-select-siswa');
           siswaSelect.innerHTML = '';
 

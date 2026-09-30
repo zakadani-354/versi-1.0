@@ -1895,6 +1895,11 @@
       presensiHistoryList: [],
       siswaList: [],
       targetList: [],
+      targetMateriCache: {},
+      currentTargetListKey: '',
+      evaluasiDataCache: {},
+      currentEvaluationData: null,
+      currentEvaluationDataKey: '',
       raporKategoriList: [],
       guruList: [],
       parsedImportSiswa: [],
@@ -3213,19 +3218,37 @@
         }
       },
 
-      async loadTargetMateri() {
+      async loadTargetMateri(forceRefresh = false) {
         const kelas = document.getElementById('target-filter-kelas').value;
         const kategori = document.getElementById('target-filter-kategori').value;
+        const { semester, tahunAjaran } = this.getAcademicParams();
+        const cacheKey = JSON.stringify({ kelas, kategori, semester, tahunAjaran });
+        this.currentTargetListKey = cacheKey;
+        const cached = forceRefresh ? null : this.targetMateriCache[cacheKey];
+
+        if (cached) {
+          this.targetList = cached;
+          this.renderTargetMateri();
+        } else {
+          const tbody = document.getElementById('target-table-body');
+          if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Memuat target materi...</td></tr>';
+          }
+        }
 
         try {
-          const { semester, tahunAjaran } = this.getAcademicParams();
           const res = await this.api(`/api/target-materi?kelas=${kelas}&kategori=${encodeURIComponent(kategori)}&semester=${semester}&tahunAjaran=${encodeURIComponent(tahunAjaran)}`);
-          if (res.success) {
-            this.targetList = res.data;
+          if (this.currentTargetListKey === cacheKey && res.success) {
+            this.targetMateriCache[cacheKey] = res.data || [];
+            this.targetList = this.targetMateriCache[cacheKey];
             this.renderTargetMateri();
           }
         } catch (e) {
-          this.showToast('Gagal memuat target materi', 'error');
+          if (this.currentTargetListKey === cacheKey && !cached) {
+            const tbody = document.getElementById('target-table-body');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center p-6 text-red-500">Gagal memuat target materi</td></tr>';
+            this.showToast('Gagal memuat target materi', 'error');
+          }
         }
       },
 
@@ -3299,6 +3322,11 @@
         if (t) this.openModalTarget(t);
       },
 
+      clearTargetCaches() {
+        this.targetMateriCache = {};
+        this.evaluasiDataCache = {};
+      },
+
       async saveTarget(e) {
         e.preventDefault();
         const id = document.getElementById('modal-target-id').value;
@@ -3320,8 +3348,9 @@
             await this.api('/api/target-materi', 'POST', data);
             this.showToast('Target materi berhasil ditambahkan', 'success');
           }
+          this.clearTargetCaches();
           this.closeModal('modal-target');
-          this.loadTargetMateri();
+          this.loadTargetMateri(true);
         } catch (err) {
           this.showToast(err.message || 'Gagal menyimpan target', 'error');
         }
@@ -3332,7 +3361,8 @@
         try {
           await this.api(`/api/target-materi?id=${encodeURIComponent(id)}`, 'DELETE');
           this.showToast('Target berhasil dihapus', 'success');
-          this.loadTargetMateri();
+          this.clearTargetCaches();
+          this.loadTargetMateri(true);
         } catch (e) {
           this.showToast(e.message || 'Gagal menghapus target', 'error');
         }
@@ -3346,7 +3376,8 @@
         try {
           await this.api('/api/target-materi-bulk-delete', 'POST', { ids });
           this.showToast(`${ids.length} target berhasil dihapus`, 'success');
-          this.loadTargetMateri();
+          this.clearTargetCaches();
+          this.loadTargetMateri(true);
         } catch (e) {
           this.showToast(e.message || 'Gagal menghapus target', 'error');
         }
@@ -3422,39 +3453,68 @@
           const items = this.parsedImportTarget.map(item => ({ ...item, ...academic }));
           const res = await this.api('/api/target-materi-bulk-import', 'POST', { items });
           this.showToast(res.message || 'Target berhasil diimpor', 'success');
+          this.clearTargetCaches();
           this.closeModal('modal-import-target');
-          this.loadTargetMateri();
+          this.loadTargetMateri(true);
         } catch (err) {
           this.showToast(err.message || 'Gagal mengimpor target materi', 'error');
         }
       },
 
       // Sub-tab Penilaian Santri (Raport)
-      async loadEvaluasiMode() {
+      async loadEvaluasiMode(forceRefresh = false) {
         const isGuru = this.currentUser.role === 'guru';
         const classFilter = document.getElementById('eval-filter-kelas');
         classFilter.previousElementSibling.classList.toggle('hidden', isGuru);
         classFilter.classList.toggle('hidden', isGuru);
         const kelas = isGuru ? this.currentUser.kelas : classFilter.value;
-        try {
-          const res = await this.api(`/api/siswa?kelas=${encodeURIComponent(kelas)}`);
-          const siswaSelect = document.getElementById('eval-select-siswa');
-          siswaSelect.innerHTML = '';
+        const { semester, tahunAjaran } = this.getAcademicParams();
+        const cacheKey = JSON.stringify({ kelas, semester, tahunAjaran });
+        const siswaSelect = document.getElementById('eval-select-siswa');
+        const selectedStudentId = siswaSelect.value;
+        this.currentEvaluationDataKey = cacheKey;
+        const cached = forceRefresh ? null : this.evaluasiDataCache[cacheKey];
 
-          const siswaList = res.data || [];
-          if (siswaList.length === 0) {
-            siswaSelect.innerHTML = '<option value="">(Tidak ada santri di kelas ini)</option>';
-            return;
-          }
-
-          siswaList.forEach(s => {
-            siswaSelect.innerHTML += `<option value="${s.id}">${s.nama} (${s.kelas})</option>`;
-          });
-
-          this.loadEvaluasiSiswa();
-        } catch (e) {
-          this.showToast('Gagal memuat evaluasi siswa', 'error');
+        if (cached) {
+          this.renderEvaluasiStudentOptions(cached, selectedStudentId);
+        } else {
+          this.currentEvaluationData = null;
+          siswaSelect.innerHTML = '<option value="">Memuat daftar santri...</option>';
+          document.getElementById('eval-table-body').innerHTML = '<tr><td colspan="5" class="text-center p-6 text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Memuat pencapaian materi...</td></tr>';
         }
+
+        try {
+          const res = await this.api(`/api/penilaian?kelas=${encodeURIComponent(kelas)}&semester=${semester}&tahunAjaran=${encodeURIComponent(tahunAjaran)}`);
+          if (this.currentEvaluationDataKey !== cacheKey || !res.success) return;
+          this.evaluasiDataCache[cacheKey] = res;
+          this.renderEvaluasiStudentOptions(res, selectedStudentId);
+        } catch (e) {
+          if (this.currentEvaluationDataKey === cacheKey && !cached) {
+            siswaSelect.innerHTML = '<option value="">Gagal memuat daftar santri</option>';
+            document.getElementById('eval-table-body').innerHTML = '<tr><td colspan="5" class="text-center p-6 text-red-500">Gagal memuat pencapaian materi</td></tr>';
+            this.showToast('Gagal memuat evaluasi siswa', 'error');
+          }
+        }
+      },
+
+      renderEvaluasiStudentOptions(res, preferredStudentId = '') {
+        this.currentEvaluationData = res;
+        const siswaSelect = document.getElementById('eval-select-siswa');
+        const siswaList = res.siswaList || [];
+        siswaSelect.innerHTML = '';
+
+        if (siswaList.length === 0) {
+          siswaSelect.innerHTML = '<option value="">(Tidak ada santri di kelas ini)</option>';
+          this.currentEvaluationTargets = [];
+          document.getElementById('eval-table-body').innerHTML = '<tr><td colspan="5" class="text-center p-6 text-slate-400">Tidak ada santri di kelas ini</td></tr>';
+          return;
+        }
+
+        siswaList.forEach(s => {
+          siswaSelect.innerHTML += `<option value="${s.id}">${s.nama} (${s.kelas})</option>`;
+        });
+        siswaSelect.value = siswaList.some(s => s.id === preferredStudentId) ? preferredStudentId : siswaList[0].id;
+        this.loadEvaluasiSiswa();
       },
 
       async loadEvaluasiSiswa() {
@@ -3462,8 +3522,16 @@
         if (!siswaId) return;
 
         try {
-          const { semester, tahunAjaran } = this.getAcademicParams();
-          const res = await this.api(`/api/penilaian?siswaId=${siswaId}&semester=${semester}&tahunAjaran=${encodeURIComponent(tahunAjaran)}`);
+          const studentData = this.currentEvaluationData;
+          const student = studentData?.siswaList?.find(s => s.id === siswaId);
+          const res = student
+            ? {
+                ...studentData,
+                siswaList: [student],
+                targetList: (studentData.targetList || []).filter(target => target.kelas === student.kelas)
+              }
+            : await this.api(`/api/penilaian?siswaId=${encodeURIComponent(siswaId)}&semester=${this.getAcademicParams().semester}&tahunAjaran=${encodeURIComponent(this.getAcademicParams().tahunAjaran)}`);
+          if (document.getElementById('eval-select-siswa').value !== siswaId) return;
           if (res.success) {
             const siswa = res.siswaList && res.siswaList[0];
             if (siswa) {
@@ -3799,7 +3867,14 @@
             nilai: 0,
             catatan: document.getElementById(`eval-catatan-${target.id}`).value
           }));
-          await this.api('/api/penilaian', 'POST', { siswaId, items, ...academic });
+          const saved = await this.api('/api/penilaian', 'POST', { siswaId, items, ...academic });
+          if (this.currentEvaluationData) {
+            const targetIds = new Set(items.map(item => item.targetId));
+            this.currentEvaluationData.penilaian = (this.currentEvaluationData.penilaian || [])
+              .filter(record => record.siswaId !== siswaId || !targetIds.has(record.targetId))
+              .concat(saved.data || []);
+            this.evaluasiDataCache[this.currentEvaluationDataKey] = this.currentEvaluationData;
+          }
           this.showToast('Semua pencapaian materi tersimpan', 'success');
           this.loadEvaluasiSiswa();
         } catch (e) {

@@ -3296,7 +3296,7 @@
 
       // Sub-tab Penilaian Santri (Raport)
       async loadEvaluasiMode() {
-        const kelas = this.currentUser.role === 'guru' ? this.currentUser.kelas : 'PAUD B';
+        const kelas = this.currentUser.role === 'guru' ? this.currentUser.kelas : 'ALL';
         try {
           const res = await this.api(`/api/siswa?kelas=${kelas}`);
           const siswaSelect = document.getElementById('eval-select-siswa');

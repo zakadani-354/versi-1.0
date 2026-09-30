@@ -97,6 +97,9 @@
       body.printing-rapor #rapor-print-capaian {
         display: block !important;
       }
+      body.printing-rapor #rapor-print-akhlaq-adab {
+        display: block !important;
+      }
       body.printing-rapor .rapor-screen-table,
       body.printing-rapor #rapor-print-header,
       body.printing-rapor #rapor-print-capaian,
@@ -1180,6 +1183,19 @@
                 </tr>
               </tfoot>
             </table>
+            <div id="rapor-print-akhlaq-adab" class="hidden mt-4">
+              <h3 class="text-base font-bold uppercase mb-2">II. BIDANG AKHLAQUL KARIMAH (AKHLAQ &amp; ADAB)</h3>
+              <table class="rapor-formal-table">
+                <thead>
+                  <tr>
+                    <th>AKHLAQ &amp; ADAB</th>
+                    <th>NILAI</th>
+                    <th>DESKRIPSI</th>
+                  </tr>
+                </thead>
+                <tbody id="formal-akhlaq-adab-body"></tbody>
+              </table>
+            </div>
             <div class="grid grid-cols-2 gap-8 mt-3 text-sm" style="font-family: Georgia, 'Times New Roman', serif;">
               <div>
                 <strong>PREDIKAT NILAI :</strong><br>
@@ -1189,7 +1205,7 @@
                 0-70&nbsp;&nbsp;&nbsp;: D | KURANG
               </div>
               <div>
-                <strong>ABSENSI :</strong><br>
+                <strong>PRESENSI :</strong><br>
                 1. Sakit&nbsp;&nbsp;&nbsp;<span id="formal-absensi-sakit">0</span>&nbsp;hari<br>
                 2. Izin&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span id="formal-absensi-izin">0</span>&nbsp;hari<br>
                 3. Alpa&nbsp;&nbsp;&nbsp;&nbsp;<span id="formal-absensi-alpa">0</span>&nbsp;hari
@@ -1219,6 +1235,25 @@
                   </tr>
                 </thead>
                 <tbody id="rapor-table-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="rapor-screen-table bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden card-print">
+            <div class="p-4 border-b border-slate-100">
+              <h3 class="text-sm font-black uppercase text-slate-800">II. Bidang Akhlaqul Karimah (Akhlaq &amp; Adab)</h3>
+              <p class="text-xs text-slate-500 mt-1">Pilih predikat A, B, C, atau D untuk setiap aspek.</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                <thead>
+                  <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                    <th class="p-3 text-center w-12">No</th>
+                    <th class="p-3">Akhlaq &amp; Adab</th>
+                    <th class="p-3 text-center">Nilai</th>
+                    <th class="p-3">Deskripsi Predikat</th>
+                  </tr>
+                </thead>
+                <tbody id="rapor-adab-input-body" class="divide-y divide-slate-100 text-slate-700"></tbody>
               </table>
             </div>
           </div>
@@ -1754,6 +1789,64 @@
       }
     };
 
+    const AKHLAQ_ADAB_ITEMS = [
+      {
+        id: 'thobiat',
+        nama: 'Enam Thobiat Luhur & Akhlaq Mulia',
+        catatan: 'Karakter dasar: jujur, amanah, rukun, kompak, kerja sama, bersyukur, pemaaf, dan semangat.',
+        deskripsi: {
+          A: 'Sangat konsisten berakhlaq mulia, jujur, rukun, dan semangat mengaji atas kesadaran penuh.',
+          B: 'Membiasakan perilaku jujur, rukun, dan ramah dengan kesadaran sendiri.',
+          C: 'Cukup jujur dan rukun, namun ketekunan mengaji naik-turun dan perlu dorongan guru.',
+          D: 'Sering tidak jujur, malas-malasan, atau memicu perselisihan di kelas mengaji.'
+        }
+      },
+      {
+        id: 'pengendalian_diri',
+        nama: 'Pengendalian Diri & Penjagaan Lisan',
+        catatan: 'Menjauhi akhlaq tercela: bohong, dendam, pelit, iri, bertengkar, mengejek, misuh, dan membully.',
+        deskripsi: {
+          A: 'Sangat matang mengontrol emosi, menjauhi dusta, dan aktif mencegah aksi perundungan.',
+          B: 'Mampu menjaga lisan dan sikap dari perbuatan mencela, mengumpat, atau bertengkar.',
+          C: 'Cukup tenang, namun sesekali masih usil atau terpancing gurauan ejekan (gojlog-gojlokan).',
+          D: 'Sering kedapatan berbohong, bertengkar, atau melakukan perundungan (bullying).'
+        }
+      },
+      {
+        id: 'ta_dhim',
+        nama: "Adab Ta'dhim Berkeluarga & Berjamaah",
+        catatan: 'Tata krama kepada orang tua, kerabat, guru, mubaligh, dan teman sesama.',
+        deskripsi: {
+          A: 'Sangat khidmat memperhatikan pelajaran, hormat ke guru, taat orang tua (boso halus), dan menghargai teman.',
+          B: 'Terbiasa bersikap sopan ke orang tua, bersalaman dengan guru, dan ramah berteman.',
+          C: 'Cukup hormat, namun sesekali tidak fokus saat guru menerangkan atau manja ke orang tua.',
+          D: 'Menunjukkan sikap membantah orang tua, kurang sopan ke guru, atau suka bermusuhan.'
+        }
+      },
+      {
+        id: 'lingkungan_masjid',
+        nama: 'Adab Lingkungan Masjid & Kelas Ngaji',
+        catatan: 'Tertib iktikaf, doa masuk/keluar, kebersihan, kerapihan dampar, dan fasilitas tempat mengaji.',
+        deskripsi: {
+          A: 'Sangat tertib iktikaf, rajin tahiyatul masjid, tanggap menyapu, dan merapikan meja/dampar.',
+          B: 'Mampu tenang di masjid, membuang sampah pada tempatnya, dan merapikan alat ngaji sendiri.',
+          C: 'Cukup tenang, namun sesekali masih lari-lari kecil atau membiarkan buku berantakan.',
+          D: 'Sering membuat kegaduhan di masjid, mengotori kelas, atau enggan merapikan alat mengaji.'
+        }
+      },
+      {
+        id: 'rutinitas_pribadi',
+        nama: 'Adab Rutinitas Pribadi & Etika Sosial',
+        catatan: "Etika berpakaian syar'i, tidur islami, bersin/menguap, makan bersama, bertamu, dan bersepeda.",
+        deskripsi: {
+          A: "Sangat tertib berpakaian syar'i, menerapkan adab makan (senyap), serta adab harian sesuai sunnah.",
+          B: 'Berpakaian rapi/menutup aurat dan membiasakan doa harian secara mandiri.',
+          C: 'Cukup tertib, namun adab sosial seperti cara makan bersama atau bersepeda masih perlu diarahkan.',
+          D: 'Sering mengabaikan batasan aurat, ugal-ugalan di jalan, atau mengabaikan tata krama dasar.'
+        }
+      }
+    ];
+
     const app = {
       // State
       token: localStorage.getItem('tpq_token') || '',
@@ -1781,6 +1874,7 @@
       presensiHistoryList: [],
       siswaList: [],
       targetList: [],
+      raporKategoriList: [],
       guruList: [],
       parsedImportSiswa: [],
       parsedImportTarget: [],
@@ -3722,9 +3816,10 @@
             document.getElementById('rapor-student-meta').textContent = `Kelas: ${siswa.kelas} | Kelompok: ${siswa.kelompok}`;
           }
           const records = res.nilaiRapor || [];
+          this.raporKategoriList = res.kategoriList || this.meta.kategoriList || [];
           const tbody = document.getElementById('rapor-table-body');
           tbody.innerHTML = '';
-          (res.kategoriList || []).forEach((kategori, index) => {
+          this.raporKategoriList.forEach((kategori, index) => {
             const record = records.find(item => item.kategori === kategori) || {};
             tbody.innerHTML += `
               <tr>
@@ -3735,27 +3830,64 @@
                 <td id="rapor-grade-${index}" class="p-3 text-center font-black">${record.huruf || 'D'}</td>
               </tr>`;
           });
+          this.renderAkhlaqAdabInput(res.nilaiAkhlaqAdab || {});
           this.updateRaporPeriod();
         } catch (e) {
           this.showToast(e.message || 'Gagal memuat nilai rapor', 'error');
         }
       },
 
+      renderAkhlaqAdabInput(values) {
+        const tbody = document.getElementById('rapor-adab-input-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        AKHLAQ_ADAB_ITEMS.forEach((item, index) => {
+          const grade = values[item.id] || '';
+          const description = grade ? item.deskripsi[grade] : '-';
+          tbody.innerHTML += `
+            <tr>
+              <td class="p-3 text-center">${index + 1}</td>
+              <td class="p-3">
+                <div class="font-bold">${item.nama}</div>
+                <div class="text-[11px] text-slate-500 mt-1">${item.catatan}</div>
+              </td>
+              <td class="p-3 text-center">
+                <select id="rapor-adab-${item.id}" onchange="app.updateAkhlaqAdabDescription('${item.id}')" class="text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:ring-2 focus:ring-brand-500">
+                  <option value="" ${grade ? '' : 'selected'}>Pilih</option>
+                  ${['A', 'B', 'C', 'D'].map(option => `<option value="${option}" ${grade === option ? 'selected' : ''}>${option}</option>`).join('')}
+                </select>
+              </td>
+              <td id="rapor-adab-description-${item.id}" class="p-3 text-xs text-slate-600">${description}</td>
+            </tr>`;
+        });
+      },
+
+      updateAkhlaqAdabDescription(itemId) {
+        const item = AKHLAQ_ADAB_ITEMS.find(entry => entry.id === itemId);
+        const grade = document.getElementById(`rapor-adab-${itemId}`)?.value;
+        const description = document.getElementById(`rapor-adab-description-${itemId}`);
+        if (item && description) description.textContent = grade ? item.deskripsi[grade] : '-';
+      },
+
       async saveAllNilaiRapor() {
         const siswaId = document.getElementById('rapor-select-siswa').value;
-        const categories = this.meta.kategoriList || [];
+        const categories = this.raporKategoriList || [];
         if (!siswaId || categories.length === 0) {
           this.showToast('Tidak ada nilai rapor untuk disimpan', 'error');
           return;
         }
         try {
           const academic = this.getAcademicParams();
-          await Promise.all(categories.map((kategori, index) => {
+          const items = categories.map((kategori, index) => {
             const value = field => document.getElementById(`rapor-${field}-${index}`).value;
-            return this.api('/api/nilai-rapor', 'POST', {
-              siswaId, kategori, uh1: value('uh1'), uh2: value('uh2'), pts: value('pts'), pas: value('pas'), ...academic
-            });
-          }));
+            return { kategori, uh1: value('uh1'), uh2: value('uh2'), pts: value('pts'), pas: value('pas') };
+          });
+          const akhlaqAdab = Object.fromEntries(AKHLAQ_ADAB_ITEMS.map(item => [
+            item.id,
+            document.getElementById(`rapor-adab-${item.id}`)?.value || ''
+          ]));
+          await this.api('/api/nilai-rapor', 'POST', { siswaId, items, akhlaqAdab, ...academic });
           this.showToast('Semua nilai rapor berhasil disimpan', 'success');
           this.loadNilaiRapor();
         } catch (e) {
@@ -3833,6 +3965,21 @@
           document.getElementById('formal-total-grade').textContent = this.getRaporGrade(averageScore);
           document.getElementById('formal-average-score').textContent = averageScore;
           document.getElementById('formal-average-grade').textContent = this.getRaporGrade(averageScore);
+
+          const adabValues = raporRes.nilaiAkhlaqAdab || {};
+          const adabBody = document.getElementById('formal-akhlaq-adab-body');
+          adabBody.innerHTML = '';
+          AKHLAQ_ADAB_ITEMS.forEach((item, index) => {
+            const rubric = Object.entries(item.deskripsi)
+              .map(([grade, description]) => `<div><strong>${grade}:</strong> ${description}</div>`)
+              .join('');
+            adabBody.innerHTML += `
+              <tr>
+                <td style="width: 30%;"><strong>${index + 1}. ${item.nama}</strong><br><span style="font-size: 8pt;">${item.catatan}</span></td>
+                <td style="width: 8%; text-align: center; font-weight: bold;">${adabValues[item.id] || '-'}</td>
+                <td style="font-size: 8pt;">${rubric}</td>
+              </tr>`;
+          });
 
           const tbody = document.getElementById('rapor-print-capaian-body');
           tbody.innerHTML = '';

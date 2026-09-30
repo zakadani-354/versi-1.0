@@ -35,6 +35,13 @@ const MASTER_KATEGORI = [
   'Adab Harian',
   'Asmaul Husna'
 ];
+const MASTER_AKHLAQ_ADAB = [
+  'thobiat',
+  'pengendalian_diri',
+  'ta_dhim',
+  'lingkungan_masjid',
+  'rutinitas_pribadi'
+];
 
 // Helper ID Unik
 function generateId(prefix = 'id') {
@@ -295,6 +302,7 @@ function getInitialData() {
     targetMateri,
     penilaian,
     nilaiRapor: [],
+    nilaiAkhlaqAdab: [],
     presensi,
     jurnal
   };
@@ -309,6 +317,7 @@ function normalizeDatabase(data) {
   if (!data.targetMateri) data.targetMateri = [];
   if (!data.penilaian) data.penilaian = [];
   if (!data.nilaiRapor) data.nilaiRapor = [];
+  if (!data.nilaiAkhlaqAdab) data.nilaiAkhlaqAdab = [];
   if (!data.presensi) data.presensi = [];
   if (!data.jurnal) data.jurnal = [];
 
@@ -1514,6 +1523,11 @@ async function handleRequest(req, res) {
         success: true,
         siswaList,
         kategoriList: MASTER_KATEGORI,
+        nilaiAkhlaqAdab: db.nilaiAkhlaqAdab.find(n =>
+          n.siswaId === siswaId &&
+          n.semester === semester &&
+          n.tahunAjaran === tahunAjaran
+        )?.values || {},
         nilaiRapor: db.nilaiRapor.filter(n =>
           (!siswaId || n.siswaId === siswaId) &&
           n.semester === semester &&
@@ -1524,6 +1538,81 @@ async function handleRequest(req, res) {
 
     if (method === 'POST') {
       const body = await parseRequestBody(req);
+      if (Array.isArray(body.items)) {
+        const { siswaId, semester = '1', tahunAjaran = '2026-2027' } = body;
+        const grades = body.akhlaqAdab;
+        const allowedGrades = ['', 'A', 'B', 'C', 'D'];
+        const validGrades = grades && typeof grades === 'object' && !Array.isArray(grades) &&
+          MASTER_AKHLAQ_ADAB.every(id =>
+            Object.prototype.hasOwnProperty.call(grades, id) && allowedGrades.includes(grades[id])
+          ) && Object.keys(grades).every(id => MASTER_AKHLAQ_ADAB.includes(id));
+
+        if (!siswaId || body.items.length !== MASTER_KATEGORI.length ||
+          !MASTER_KATEGORI.every(kategori => body.items.some(item => item?.kategori === kategori)) ||
+          !validGrades) {
+          return sendJSON(res, 400, { success: false, message: 'Nilai rapor dan Akhlaq & Adab tidak lengkap atau tidak valid' });
+        }
+
+        const student = db.siswa.find(s => s.id === siswaId);
+        if (!student) return sendJSON(res, 404, { success: false, message: 'Siswa tidak ditemukan' });
+        if (currentUser.role === 'guru' && student.kelas !== currentUser.kelas) {
+          return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
+        }
+
+        const records = body.items.map(item => {
+          const scores = [item.uh1, item.uh2, item.pts, item.pas].map(value => Math.max(0, Math.min(100, Number(value) || 0)));
+          const rataRata = Math.round((scores.reduce((sum, value) => sum + value, 0) / 4) * 100) / 100;
+          const existingIdx = db.nilaiRapor.findIndex(n =>
+            n.siswaId === siswaId &&
+            n.kategori === item.kategori &&
+            n.semester === semester &&
+            n.tahunAjaran === tahunAjaran
+          );
+          const record = {
+            id: existingIdx >= 0 ? db.nilaiRapor[existingIdx].id : generateId('rapor'),
+            siswaId,
+            kategori: item.kategori,
+            uh1: scores[0],
+            uh2: scores[1],
+            pts: scores[2],
+            pas: scores[3],
+            rataRata,
+            huruf: rataRata >= 91 ? 'A' : rataRata >= 81 ? 'B' : rataRata >= 71 ? 'C' : 'D',
+            semester,
+            tahunAjaran,
+            updatedAt: new Date().toISOString()
+          };
+
+          if (existingIdx >= 0) db.nilaiRapor[existingIdx] = record;
+          else db.nilaiRapor.push(record);
+          return record;
+        });
+
+        const adabIdx = db.nilaiAkhlaqAdab.findIndex(n =>
+          n.siswaId === siswaId &&
+          n.semester === semester &&
+          n.tahunAjaran === tahunAjaran
+        );
+        const adabRecord = {
+          id: adabIdx >= 0 ? db.nilaiAkhlaqAdab[adabIdx].id : generateId('adab'),
+          siswaId,
+          values: grades,
+          semester,
+          tahunAjaran,
+          updatedAt: new Date().toISOString()
+        };
+        if (adabIdx >= 0) db.nilaiAkhlaqAdab[adabIdx] = adabRecord;
+        else db.nilaiAkhlaqAdab.push(adabRecord);
+
+        if (!await saveDatabaseOrReply(db, res)) return;
+        return sendJSON(res, 200, {
+          success: true,
+          message: 'Semua nilai rapor berhasil disimpan',
+          data: records,
+          nilaiAkhlaqAdab: grades
+        });
+      }
+
       const {
         siswaId,
         kategori,

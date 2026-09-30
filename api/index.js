@@ -1414,17 +1414,10 @@ async function handleRequest(req, res) {
     // Update status penilaian satuan atau batch
     if (method === 'POST') {
       const body = await parseRequestBody(req);
-      const {
-        siswaId,
-        targetId,
-        status,
-        nilai,
-        catatan,
-        semester = '1',
-        tahunAjaran = '2026-2027'
-      } = body;
+      const { siswaId, semester = '1', tahunAjaran = '2026-2027' } = body;
+      const items = Array.isArray(body.items) ? body.items : [body];
 
-      if (!siswaId || !targetId || !status) {
+      if (!siswaId || items.length === 0 || items.some(item => !item.targetId || !item.status)) {
         return sendJSON(res, 400, { success: false, message: 'Siswa, target materi, dan status wajib diisi' });
       }
 
@@ -1435,33 +1428,41 @@ async function handleRequest(req, res) {
         return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
       }
 
-      const existingIdx = db.penilaian.findIndex(p =>
-        p.siswaId === siswaId &&
-        p.targetId === targetId &&
-        p.semester === semester &&
-        p.tahunAjaran === tahunAjaran
-      );
-      const record = {
-        id: existingIdx >= 0 ? db.penilaian[existingIdx].id : generateId('pen'),
-        siswaId,
-        targetId,
-        status, // 'Tuntas', 'Sedang Proses', 'Belum'
-        nilai: Number(nilai) || 0,
-        catatan: catatan || '',
-        semester,
-        tahunAjaran,
-        tanggal: new Date().toISOString().substring(0, 10),
-        updatedAt: new Date().toISOString()
-      };
+      const records = items.map(item => {
+        const existingIdx = db.penilaian.findIndex(p =>
+          p.siswaId === siswaId &&
+          p.targetId === item.targetId &&
+          p.semester === semester &&
+          p.tahunAjaran === tahunAjaran
+        );
+        const record = {
+          id: existingIdx >= 0 ? db.penilaian[existingIdx].id : generateId('pen'),
+          siswaId,
+          targetId: item.targetId,
+          status: item.status,
+          nilai: Number(item.nilai) || 0,
+          catatan: item.catatan || '',
+          semester,
+          tahunAjaran,
+          tanggal: new Date().toISOString().substring(0, 10),
+          updatedAt: new Date().toISOString()
+        };
 
-      if (existingIdx >= 0) {
-        db.penilaian[existingIdx] = record;
-      } else {
-        db.penilaian.push(record);
-      }
+        if (existingIdx >= 0) {
+          db.penilaian[existingIdx] = record;
+        } else {
+          db.penilaian.push(record);
+        }
+
+        return record;
+      });
 
       if (!await saveDatabaseOrReply(db, res)) return;
-      return sendJSON(res, 200, { success: true, message: 'Penilaian berhasil disimpan', data: record });
+      return sendJSON(res, 200, {
+        success: true,
+        message: 'Penilaian berhasil disimpan',
+        data: Array.isArray(body.items) ? records : records[0]
+      });
     }
   }
 

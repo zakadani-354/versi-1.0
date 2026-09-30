@@ -3648,14 +3648,13 @@
         }
         try {
           const academic = this.getAcademicParams();
-          await Promise.all(targets.map(target => this.api('/api/penilaian', 'POST', {
-            siswaId,
+          const items = targets.map(target => ({
             targetId: target.id,
             status: document.getElementById(`eval-status-${target.id}`).value,
             nilai: 0,
-            catatan: document.getElementById(`eval-catatan-${target.id}`).value,
-            ...academic
-          })));
+            catatan: document.getElementById(`eval-catatan-${target.id}`).value
+          }));
+          await this.api('/api/penilaian', 'POST', { siswaId, items, ...academic });
           this.showToast('Semua pencapaian materi tersimpan', 'success');
           this.loadEvaluasiSiswa();
         } catch (e) {

@@ -303,7 +303,7 @@ function getInitialData() {
 function normalizeDatabase(data) {
   if (!data.kelasList) data.kelasList = MASTER_KELAS;
   if (!data.kelompokList) data.kelompokList = MASTER_KELOMPOK;
-  if (!data.kategoriList) data.kategoriList = MASTER_KATEGORI;
+  data.kategoriList = [...new Set([...MASTER_KATEGORI, ...(data.kategoriList || [])])];
   if (!data.users) data.users = [];
   if (!data.siswa) data.siswa = [];
   if (!data.targetMateri) data.targetMateri = [];

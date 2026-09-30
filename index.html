@@ -1032,10 +1032,10 @@
                   <!-- Diisi otomatis dari list siswa kelas aktif -->
                 </select>
               </div>
-              <div class="min-w-[280px] rounded-xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-slate-900 px-4 py-3 text-white shadow-sm">
-                <h3 class="text-xs font-black uppercase">Perkembangan Pencapaian Santri</h3>
-                <p id="eval-visualization-period" class="text-xs font-semibold text-emerald-100 mt-1">Semester Ganjil | Tahun Ajaran 2026-2027</p>
-                <p class="text-sm font-bold mt-1"><span id="eval-student-percentage">0%</span> Tuntas <span id="eval-student-progress" class="text-emerald-100">(0/0 Tuntas)</span></p>
+              <div class="w-full sm:w-auto sm:min-w-[300px] rounded-lg bg-emerald-800 px-4 py-3 text-white">
+                <h3 class="text-sm font-bold uppercase">Perkembangan Pencapaian Santri</h3>
+                <p id="eval-visualization-period" class="text-xs font-medium text-emerald-100 mt-1">Semester Ganjil | Tahun Ajaran 2026-2027</p>
+                <p class="text-sm font-semibold mt-1"><span id="eval-student-percentage">0%</span> Tuntas <span id="eval-student-progress" class="text-emerald-100">(0/0 Tuntas)</span></p>
               </div>
             </div>
             <div class="flex flex-wrap items-center justify-end gap-2">
@@ -1058,10 +1058,10 @@
           <div id="capaian-workspace" class="grid grid-cols-1 xl:grid-cols-[minmax(300px,0.9fr)_minmax(0,2fr)] gap-4 items-start">
           <div id="eval-visualization" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-5 card-print">
             <div id="eval-visualization-screen" class="mb-3">
-              <div id="eval-student-card" class="rounded-xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-slate-900 p-3 text-white shadow-sm">
+              <div id="eval-student-card" class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-emerald-950">
                 <div class="min-w-0">
-                  <h3 id="eval-student-name" class="text-sm font-bold text-white truncate">Nama Santri</h3>
-                  <p id="eval-student-meta" class="text-[11px] font-semibold text-emerald-100 mt-0.5">Kelas: PAUD B | Kelompok: Baitu Taqwa</p>
+                  <h3 id="eval-student-name" class="text-sm font-bold text-emerald-950 truncate">Nama Santri</h3>
+                  <p id="eval-student-meta" class="text-xs font-medium text-emerald-800 mt-0.5">Kelas: PAUD B | Kelompok: Baitu Taqwa</p>
                 </div>
               </div>
             </div>
@@ -1097,12 +1097,12 @@
               </table>
             </div>
             <div id="eval-visualization-screen-body" class="grid grid-cols-1 gap-3 items-start">
-              <div class="h-72 bg-slate-50 rounded-xl p-3">
+              <div class="h-56 rounded-lg border border-slate-200 p-3">
                 <canvas id="chart-capaian-santri"></canvas>
               </div>
               <div>
                 <h4 class="text-xs font-black uppercase text-slate-700 border-b border-slate-200 pb-2 mb-1">Daftar Materi Tuntas</h4>
-                <div id="eval-target-summary" class="h-72 overflow-y-auto overscroll-contain divide-y divide-slate-100 pr-1"></div>
+                <div id="eval-target-summary" class="h-56 overflow-y-auto overscroll-contain divide-y divide-slate-100 pr-1"></div>
               </div>
             </div>
           </div>
@@ -3653,7 +3653,6 @@
               <span class="block text-xs font-bold text-slate-800">${item.judul}</span>
               <span class="block text-[10px] font-semibold uppercase text-slate-400">${item.kategori}</span>
             </div>
-            <i class="fa-solid fa-check text-emerald-600"></i>
           </div>
         `).join('') : '<p class="py-5 text-center text-xs text-slate-400">Belum ada materi yang tuntas.</p>';
 
@@ -3705,7 +3704,7 @@
               legend: {
                 display: true,
                 position: 'bottom',
-                labels: { boxWidth: 36, boxHeight: 36, padding: 18, font: { size: 30, weight: 'bold' } }
+                labels: { boxWidth: 18, boxHeight: 18, padding: 12, font: { size: 14, weight: 'bold' } }
               },
               tooltip: {
                 callbacks: {

@@ -3970,14 +3970,13 @@
           const adabBody = document.getElementById('formal-akhlaq-adab-body');
           adabBody.innerHTML = '';
           AKHLAQ_ADAB_ITEMS.forEach((item, index) => {
-            const rubric = Object.entries(item.deskripsi)
-              .map(([grade, description]) => `<div><strong>${grade}:</strong> ${description}</div>`)
-              .join('');
+            const grade = adabValues[item.id] || '';
+            const description = grade ? item.deskripsi[grade] : '-';
             adabBody.innerHTML += `
               <tr>
                 <td style="width: 30%;"><strong>${index + 1}. ${item.nama}</strong><br><span style="font-size: 8pt;">${item.catatan}</span></td>
-                <td style="width: 8%; text-align: center; font-weight: bold;">${adabValues[item.id] || '-'}</td>
-                <td style="font-size: 8pt;">${rubric}</td>
+                <td style="width: 8%; text-align: center; font-weight: bold;">${grade || '-'}</td>
+                <td style="font-size: 8pt;">${description}</td>
               </tr>`;
           });
 

@@ -55,6 +55,15 @@
       font-family: 'Plus Jakarta Sans', sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
+    body.login-page {
+      padding-bottom: 0 !important;
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
+    .login-screen {
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
     .font-arabic {
       font-family: 'Amiri', serif;
     }
@@ -346,12 +355,12 @@
     }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white pb-20 md:pb-6">
+<body class="login-page bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white pb-20 md:pb-6">
 
   <!-- ======================================================== -->
   <!-- 1. HALAMAN LOGIN                                         -->
   <!-- ======================================================== -->
-  <section id="view-login" class="flex-1 flex items-center justify-center p-4 sm:p-6 min-h-screen bg-gradient-to-br from-emerald-900 via-emerald-800 to-slate-900">
+  <section id="view-login" class="login-screen flex-1 flex items-center justify-center p-4 sm:p-6 bg-gradient-to-br from-emerald-900 via-emerald-800 to-slate-900">
     <div class="w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-6 sm:p-8 border border-white/20 relative overflow-hidden">
       <!-- Ornamen latar Islami -->
       <div class="absolute -top-16 -right-16 w-44 h-44 bg-brand-500/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -2133,11 +2142,13 @@
       },
 
       showLogin() {
+        document.body.classList.add('login-page');
         document.getElementById('view-login').classList.remove('hidden');
         document.getElementById('view-app').classList.add('hidden');
       },
 
       showApp() {
+        document.body.classList.remove('login-page');
         document.getElementById('view-login').classList.add('hidden');
         document.getElementById('view-app').classList.remove('hidden');
         this.navigate('dashboard');

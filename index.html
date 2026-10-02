@@ -2248,7 +2248,7 @@
       },
 
       
-      async shareDashboardVisualization() {
+            async shareDashboardVisualization() {
         const dashboard = document.getElementById('tab-dashboard');
         if (!dashboard || typeof html2canvas !== 'function') {
           this.showToast('Fitur gambar belum siap, silakan muat ulang halaman', 'error');
@@ -2256,30 +2256,20 @@
         }
 
         try {
-          
-          document.body.classList.add('printing-dashboard');
-          dashboard.style.width = '800px'; 
-          
-          await new Promise(resolve => requestAnimationFrame(resolve));
+          await new Promise(resolve => setTimeout(resolve, 300));
           const canvas = await html2canvas(dashboard, {
-            backgroundColor: '#ffffff',
+            backgroundColor: '#f8fafc',
             scale: 2,
             useCORS: true,
             logging: false,
-            onclone: (doc) => {
-               // Additional tweaks for clone if needed
-            }
+            ignoreElements: (el) => el.id === 'dashboard-filter-controls'
           });
-          
-          dashboard.style.width = '';
-          document.body.classList.remove('printing-dashboard');
-
 
           const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
           if (!blob) throw new Error('Gambar tidak berhasil dibuat');
 
           if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'dashboard.png', { type: 'image/png' })] })) {
-            const file = new File([blob], `Dashboard_TPQ_${Date.now()}.png`, { type: 'image/png' });
+            const file = new File([blob], Dashboard_TPQ_.png, { type: 'image/png' });
             await navigator.share({
               title: 'Laporan Dashboard TPQ',
               text: 'Berikut adalah laporan dashboard TPQ Baitussalam Huda Mansurin',
@@ -2289,7 +2279,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Dashboard_TPQ_${Date.now()}.png`;
+            a.download = Dashboard_TPQ_.png;
             a.click();
             URL.revokeObjectURL(url);
             this.showToast('Gambar berhasil diunduh', 'success');

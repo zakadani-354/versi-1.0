@@ -3118,16 +3118,31 @@
 
           const statusCodes = { hadir: 'H', h: 'H', izin: 'I', i: 'I', sakit: 'S', s: 'S', alpa: 'A', a: 'A' };
           const statusByStudentDate = new Map();
+          const statusByNameGroupDate = new Map();
+          const normalizeAttendanceText = value => String(value || '').trim().toLocaleLowerCase('id');
           attendance.forEach(record => {
-            const key = `${record.siswaId}|${record.tanggal}`;
-            const current = statusByStudentDate.get(key);
-            if (!current || String(record.updatedAt || '') >= String(current.updatedAt || '')) {
-              statusByStudentDate.set(key, {
-                status: statusCodes[String(record.status || '').trim().toLowerCase()] || '',
-                updatedAt: record.updatedAt || ''
-              });
-            }
+            const statusRecord = {
+              status: statusCodes[normalizeAttendanceText(record.status)] || '',
+              updatedAt: record.updatedAt || ''
+            };
+            const keys = [
+              [statusByStudentDate, `${record.siswaId}|${record.tanggal}`],
+              [statusByNameGroupDate, `${normalizeAttendanceText(record.nama)}|${normalizeAttendanceText(record.kelompok)}|${record.tanggal}`]
+            ];
+            keys.forEach(([statusMap, key]) => {
+              const current = statusMap.get(key);
+              if (!current || String(statusRecord.updatedAt) >= String(current.updatedAt)) {
+                statusMap.set(key, statusRecord);
+              }
+            });
           });
+
+          const statusForStudent = (student, date) => {
+            const byId = statusByStudentDate.get(`${student.id}|${date}`);
+            if (byId) return byId.status;
+            const nameGroupDateKey = `${normalizeAttendanceText(student.nama)}|${normalizeAttendanceText(student.kelompok)}|${date}`;
+            return statusByNameGroupDate.get(nameGroupDateKey)?.status || '';
+          };
 
           const dateHeaders = dates.map(date => new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }));
           const headers = ['Kelompok', 'Nama', ...dateHeaders, 'Rata-rata H (%)', 'Rata-rata I (%)', 'Rata-rata S (%)', 'Rata-rata A (%)'];
@@ -3141,7 +3156,7 @@
 
             groupStudents.forEach(student => {
               const values = dates.map(date => {
-                const status = statusByStudentDate.get(`${student.id}|${date}`)?.status || '';
+                const status = statusForStudent(student, date);
                 if (status) statusTotals[status] += 1;
                 return status;
               });

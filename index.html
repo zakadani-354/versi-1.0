@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
@@ -823,7 +823,7 @@
                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
                   <i class="fa-solid fa-magnifying-glass text-xs"></i>
                 </span>
-                <input type="text" id="presensi-history-search" oninput="app.filterPresensiHistory()" placeholder="Cari nama santri..." class="w-full pl-8 pr-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                <select id="presensi-history-search" onchange="app.filterPresensiHistory()" class="w-full pl-8 pr-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition appearance-none cursor-pointer"><option value="ALL">Semua Santri</option></select>
               </div>
               <span id="presensi-history-count" class="text-xs text-slate-400 font-semibold shrink-0"></span>
             </div>
@@ -1917,7 +1917,7 @@
       dashboardData: null,
       jurnalList: [],
       presensiInputData: [],
-      presensiHistoryList: [],
+      presensiHistoryList: [],\n      presensiHistoryAll: [],
       siswaList: [],
       targetList: [],
       targetMateriCache: {},
@@ -2901,8 +2901,10 @@
         try {
           const res = await this.api(`/api/presensi?kelas=${encodeURIComponent(kelas)}&kelompok=${encodeURIComponent(kelompok)}`);
           if (res.success) {
+            this.presensiHistoryAll = res.data;
             this.presensiHistoryList = res.data;
             this.renderPresensiHistory();
+            this.updatePresensiHistoryFilter();
           }
         } catch (e) {
           this.showToast('Gagal memuat riwayat presensi', 'error');
@@ -2956,12 +2958,29 @@
       },
 
       filterPresensiHistory() {
-        if (!this.presensiHistoryList) return;
-        const q = (document.getElementById("presensi-history-search").value || "").toLowerCase();
-        const filtered = this.presensiHistoryList.filter(p => p.nama.toLowerCase().includes(q));
+        if (!this.presensiHistoryAll) return;
+        const val = document.getElementById("presensi-history-search").value || "ALL";
+        let filtered = this.presensiHistoryAll;
+        if (val && val !== "ALL") {
+          filtered = filtered.filter(p => p.nama === val);
+        }
         this.presensiHistoryList = filtered;
         this.renderPresensiHistory();
         this.updateBulkBar("presensi");
+      },
+
+      updatePresensiHistoryFilter() {
+        const sel = document.getElementById("presensi-history-search");
+        if (!sel || !this.presensiHistoryAll) return;
+        const current = sel.value || "ALL";
+        const names = [...new Set(this.presensiHistoryAll.map(p => p.nama))].sort();
+        let html = '<option value="ALL">Semua Santri</option>';
+        for (let i = 0; i < names.length; i++) {
+          const n = names[i];
+          const selected = n === current ? ' selected' : '';
+          html += '<option value="' + n.replace(/"/g, '&quot;') + '"' + selected + '>' + n + '</option>';
+        }
+        sel.innerHTML = html;
       },
 
       openModalPresensi(p = null) {
@@ -4444,3 +4463,4 @@
   </script>
 </body>
 </html>
+

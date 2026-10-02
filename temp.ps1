@@ -14,11 +14,11 @@ $replacementText = @"
 
       filterPresensiHistory() {
         if (!this.presensiHistoryList) return;
-        const q = (document.getElementById("presensi-history-search").value || "").toLowerCase();
+        const q = (document.getElementById(""presensi-history-search"").value || """).toLowerCase();
         const filtered = this.presensiHistoryList.filter(p => p.nama.toLowerCase().includes(q));
         this.presensiHistoryList = filtered;
         this.renderPresensiHistory();
-        this.updateBulkBar("presensi");
+        this.updateBulkBar(""presensi"");
       },
 
       openModalPresensi(p = null) {

@@ -2269,7 +2269,7 @@
           if (!blob) throw new Error('Gambar tidak berhasil dibuat');
 
           if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'dashboard.png', { type: 'image/png' })] })) {
-            const file = new File([blob], Dashboard_TPQ_.png, { type: 'image/png' });
+            const file = new File([blob], `Dashboard_TPQ_${Date.now()}.png`, { type: 'image/png' });
             await navigator.share({
               title: 'Laporan Dashboard TPQ',
               text: 'Berikut adalah laporan dashboard TPQ Baitussalam Huda Mansurin',
@@ -2279,7 +2279,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = Dashboard_TPQ_.png;
+            a.download = `Dashboard_TPQ_${Date.now()}.png`;
             a.click();
             URL.revokeObjectURL(url);
             this.showToast('Gambar berhasil diunduh', 'success');

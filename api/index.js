@@ -53,6 +53,12 @@ function generateId(prefix = 'id') {
   return `${prefix}_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
 }
 
+function normalizeKelas(kelas) {
+  const value = String(kelas || '').trim().toUpperCase();
+  const match = value.match(/^(?:KELAS\s*)?([1-6])$/);
+  return match ? match[1] : value;
+}
+
 // Inisialisasi Database Default (Seed Data)
 function getInitialData() {
   const users = [
@@ -1153,7 +1159,7 @@ async function handleRequest(req, res) {
 
       let list = db.siswa;
       if (kelas && kelas !== 'ALL') {
-        list = list.filter(s => s.kelas === kelas);
+        list = list.filter(s => normalizeKelas(s.kelas) === normalizeKelas(kelas));
       }
       if (kelompok && kelompok !== 'ALL') {
         list = list.filter(s => s.kelompok === kelompok);
@@ -1554,7 +1560,7 @@ async function handleRequest(req, res) {
         siswaList = siswaList.filter(s => s.id === siswaId);
       }
       if (currentUser.role === 'guru') {
-        siswaList = siswaList.filter(s => s.kelas === currentUser.kelas);
+        siswaList = siswaList.filter(s => normalizeKelas(s.kelas) === normalizeKelas(currentUser.kelas));
       }
 
       return sendJSON(res, 200, {
@@ -1563,7 +1569,7 @@ async function handleRequest(req, res) {
         kategoriList: MASTER_KATEGORI,
         guruList: siswaId && siswaList[0]
           ? db.users
-            .filter(user => user.role === 'guru' && user.kelas === siswaList[0].kelas)
+            .filter(user => user.role === 'guru' && normalizeKelas(user.kelas) === normalizeKelas(siswaList[0].kelas))
             .map(user => ({ nama: user.nama, kelas: user.kelas }))
           : [],
         nilaiAkhlaqAdab: db.nilaiAkhlaqAdab.find(n =>
@@ -1598,7 +1604,7 @@ async function handleRequest(req, res) {
 
         const student = db.siswa.find(s => s.id === siswaId);
         if (!student) return sendJSON(res, 404, { success: false, message: 'Siswa tidak ditemukan' });
-        if (currentUser.role === 'guru' && student.kelas !== currentUser.kelas) {
+        if (currentUser.role === 'guru' && normalizeKelas(student.kelas) !== normalizeKelas(currentUser.kelas)) {
           return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
         }
 
@@ -1673,7 +1679,7 @@ async function handleRequest(req, res) {
 
       const s = db.siswa.find(x => x.id === siswaId);
       if (!s) return sendJSON(res, 404, { success: false, message: 'Siswa tidak ditemukan' });
-      if (currentUser.role === 'guru' && s.kelas !== currentUser.kelas) {
+      if (currentUser.role === 'guru' && normalizeKelas(s.kelas) !== normalizeKelas(currentUser.kelas)) {
         return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
       }
 

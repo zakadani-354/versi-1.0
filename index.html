@@ -1169,7 +1169,11 @@
         <!-- 5C. SUB-TAB: NILAI RAPOR 7 SUBJEK -->
         <div id="target-view-rapor" class="hidden space-y-4">
           <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3 no-print">
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <label for="rapor-filter-kelas" class="text-xs font-bold text-slate-600">Kelas:</label>
+              <select id="rapor-filter-kelas" onchange="app.loadNilaiRaporMode()" class="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
+                <option value="ALL">Semua Kelas</option>
+              </select>
               <label class="text-xs font-bold text-slate-600">Pilih Santri:</label>
               <select id="rapor-select-siswa" onchange="app.loadNilaiRapor()" class="text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500"></select>
             </div>
@@ -1957,6 +1961,8 @@
         capaian: null,
         capaianPrint: null
       },
+      raporListLoadVersion: 0,
+      raporValueLoadVersion: 0,
 
       // Inisialisasi Aplikasi
       async init() {
@@ -2079,6 +2085,7 @@
         fill('siswa-filter-kelas', this.meta.kelasList, 'Semua Kelas');
         fill('target-filter-kelas', this.meta.kelasList, 'Semua Kelas');
         fill('eval-filter-kelas', this.meta.kelasList, 'Semua Kelas');
+        fill('rapor-filter-kelas', this.meta.kelasList, 'Semua Kelas');
         fill('modal-jurnal-kelas', this.meta.kelasList);
         fill('modal-siswa-kelas', this.meta.kelasList);
         fill('modal-target-kelas', this.meta.kelasList);
@@ -2151,6 +2158,7 @@
           lockClass('presensi-filter-kelas');
           lockClass('siswa-filter-kelas');
           lockClass('target-filter-kelas');
+          lockClass('rapor-filter-kelas');
           lockClass('modal-jurnal-kelas');
           lockClass('modal-siswa-kelas');
           lockClass('modal-target-kelas');
@@ -2506,6 +2514,7 @@
         const dataSakit = ringkasan.sakit || 0;
         const dataIzin = ringkasan.izin || 0;
         const dataAlpa = ringkasan.alpa || 0;
+        const chartColors = ['#168A62', '#357DA3', '#C78A28', '#C35D55'];
 
         const total = dataHadir + dataSakit + dataIzin + dataAlpa;
         const pieValueLabels = {
@@ -2537,7 +2546,8 @@
             labels: ['Hadir', 'Sakit', 'Izin', 'Alpa'],
             datasets: [{
               data: total > 0 ? [dataHadir, dataSakit, dataIzin, dataAlpa] : [1, 0, 0, 0],
-              backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+              backgroundColor: chartColors,
+              hoverBackgroundColor: chartColors,
               borderWidth: 2,
               borderColor: '#ffffff'
             }]
@@ -2556,10 +2566,10 @@
         const legend = document.getElementById('presensi-legend');
         if (legend) {
           const labels = [
-            { label: 'Hadir', value: dataHadir, color: '#10b981' },
-            { label: 'Sakit', value: dataSakit, color: '#3b82f6' },
-            { label: 'Izin', value: dataIzin, color: '#f59e0b' },
-            { label: 'Alpa', value: dataAlpa, color: '#ef4444' }
+            { label: 'Hadir', value: dataHadir, color: chartColors[0] },
+            { label: 'Sakit', value: dataSakit, color: chartColors[1] },
+            { label: 'Izin', value: dataIzin, color: chartColors[2] },
+            { label: 'Alpa', value: dataAlpa, color: chartColors[3] }
           ];
           const totalValue = labels.reduce((sum, item) => sum + item.value, 0) || 1;
           legend.innerHTML = labels.map(item => {
@@ -3817,7 +3827,7 @@
           targetData.filter(item => item.status !== 'Tuntas' && item.status !== 'Sedang Proses').length
         ];
         const statusLabels = ['Materi Tuntas', 'Sedang Proses', 'Belum Tuntas'];
-        const statusColors = ['#8FC8A8', '#F0C66A', '#E8A09A'];
+        const statusColors = ['#287A52', '#C28A2C', '#B95C55'];
         const pieValueLabels = {
           id: 'capaianPieValueLabels',
           afterDraw: chartInstance => {
@@ -3847,6 +3857,7 @@
               label: 'Jumlah Materi',
               data: statusCounts,
               backgroundColor: statusColors,
+              hoverBackgroundColor: statusColors,
               borderColor: '#ffffff',
               borderWidth: 3,
               borderRadius: 6,
@@ -3896,6 +3907,7 @@
                 label: 'Jumlah Materi',
                 data: statusCounts,
                 backgroundColor: statusColors,
+                hoverBackgroundColor: statusColors,
                 borderColor: '#ffffff',
                 borderWidth: 2,
                 borderRadius: 4,
@@ -4030,35 +4042,51 @@
       },
 
       async loadNilaiRaporMode() {
-        const kelas = this.currentUser.role === 'guru' ? this.currentUser.kelas : 'ALL';
+        const loadVersion = ++this.raporListLoadVersion;
+        const kelasFilter = document.getElementById('rapor-filter-kelas');
+        const kelas = this.currentUser.role === 'guru' ? this.currentUser.kelas : (kelasFilter?.value || 'ALL');
+        const siswaSelect = document.getElementById('rapor-select-siswa');
+        const selectedStudentId = siswaSelect.value;
         try {
           const res = await this.api(`/api/siswa?kelas=${encodeURIComponent(kelas)}`);
-          const select = document.getElementById('rapor-select-siswa');
-          select.innerHTML = '';
+          if (loadVersion !== this.raporListLoadVersion) return;
+          siswaSelect.replaceChildren();
           const siswaList = res.data || [];
           if (siswaList.length === 0) {
-            select.innerHTML = '<option value="">(Tidak ada santri di kelas ini)</option>';
+            siswaSelect.add(new Option('(Tidak ada santri di kelas ini)', ''));
+            this.raporValueLoadVersion += 1;
+            document.getElementById('rapor-student-name').textContent = 'Tidak ada santri di kelas ini';
+            document.getElementById('rapor-student-meta').textContent = 'Silakan pilih kelas lain';
+            document.getElementById('rapor-table-body').innerHTML = '<tr><td colspan="8" class="text-center p-6 text-slate-400">Tidak ada nilai rapor untuk kelas ini</td></tr>';
+            document.getElementById('rapor-adab-input-body').replaceChildren();
+            ['rapor-avg-uh1', 'rapor-avg-pts', 'rapor-avg-uh2', 'rapor-avg-pas', 'rapor-avg-total'].forEach(id => {
+              document.getElementById(id).textContent = '0';
+            });
+            document.getElementById('rapor-avg-grade').textContent = 'D';
             return;
           }
           siswaList.forEach(s => {
-            select.innerHTML += `<option value="${s.id}">${s.nama} (${s.kelas})</option>`;
+            siswaSelect.add(new Option(`${s.nama} (${this.formatRaporClass(s.kelas)})`, s.id));
           });
+          if (siswaList.some(s => s.id === selectedStudentId)) siswaSelect.value = selectedStudentId;
           this.loadNilaiRapor();
         } catch (e) {
-          this.showToast('Gagal memuat daftar santri rapor', 'error');
+          if (loadVersion === this.raporListLoadVersion) this.showToast('Gagal memuat daftar santri rapor', 'error');
         }
       },
 
       async loadNilaiRapor() {
         const siswaId = document.getElementById('rapor-select-siswa').value;
         if (!siswaId) return;
+        const loadVersion = ++this.raporValueLoadVersion;
         try {
           const { semester, tahunAjaran } = this.getAcademicParams();
           const res = await this.api(`/api/nilai-rapor?siswaId=${siswaId}&semester=${semester}&tahunAjaran=${encodeURIComponent(tahunAjaran)}`);
+          if (loadVersion !== this.raporValueLoadVersion || document.getElementById('rapor-select-siswa').value !== siswaId) return;
           const siswa = res.siswaList?.[0];
           if (siswa) {
             document.getElementById('rapor-student-name').textContent = siswa.nama;
-            document.getElementById('rapor-student-meta').textContent = `Kelas: ${siswa.kelas} | Kelompok: ${siswa.kelompok}`;
+            document.getElementById('rapor-student-meta').textContent = `Kelas: ${this.formatRaporClass(siswa.kelas)} | Kelompok: ${siswa.kelompok}`;
           }
           const records = res.nilaiRapor || [];
           this.raporKategoriList = res.kategoriList || this.meta.kategoriList || [];
@@ -4101,6 +4129,11 @@
         } catch (e) {
           this.showToast(e.message || 'Gagal memuat nilai rapor', 'error');
         }
+      },
+
+      formatRaporClass(kelas) {
+        const match = String(kelas || '').match(/^(?:KELAS\s*)?([1-6])$/i);
+        return match ? `KELAS ${match[1]}` : kelas;
       },
 
       renderAkhlaqAdabInput(values) {

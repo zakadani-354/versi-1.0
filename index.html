@@ -833,7 +833,12 @@
                   <option value="">Semua santri</option>
                 </select>
               </div>
-              <span id="presensi-history-count" class="text-xs text-slate-400 font-semibold shrink-0"></span>
+              <div class="flex items-center gap-2 self-end sm:self-auto">
+                <span id="presensi-history-count" class="text-xs text-slate-400 font-semibold shrink-0"></span>
+                <button type="button" onclick="app.openPresensiExportModal()" class="px-3 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition">
+                  <i class="fa-solid fa-file-excel"></i><span>Export XLSX</span>
+                </button>
+              </div>
             </div>
 
             <div class="overflow-x-auto">
@@ -1780,6 +1785,27 @@
     </div>
   </div>
 
+  <div id="modal-export-presensi" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-5 border border-slate-100">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
+          <i class="fa-solid fa-file-excel text-emerald-700"></i> Export Riwayat Presensi
+        </h3>
+        <button type="button" onclick="app.closeModal('modal-export-presensi')" aria-label="Tutup" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <label for="presensi-export-month" class="block text-xs font-bold text-slate-600 mb-1.5">Bulan KBM</label>
+      <input type="month" id="presensi-export-month" required class="w-full text-sm font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
+      <div class="flex gap-2 pt-5">
+        <button type="button" onclick="app.closeModal('modal-export-presensi')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">Batal</button>
+        <button type="button" onclick="app.exportPresensiXlsx()" class="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs shadow-sm transition">
+          <i class="fa-solid fa-download mr-1"></i> Unduh XLSX
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notifikasi Global -->
   <div id="toast" class="fixed bottom-20 md:bottom-6 right-4 sm:right-6 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl z-50 text-xs font-semibold flex items-center gap-2 transform translate-y-10 opacity-0 pointer-events-none transition duration-300">
     <i id="toast-icon" class="fa-solid fa-circle-check text-brand-400"></i>
@@ -1940,6 +1966,7 @@
       jurnalList: [],
       presensiInputData: [],
       presensiHistoryList: [],
+      presensiExportMonth: '',
       apiCache: new Map(),
       apiRequests: new Map(),
       apiCacheVersion: 0,
@@ -3039,6 +3066,120 @@
       filterPresensiHistory() {
         if (!this.presensiHistoryList) return;
         this.renderPresensiHistory();
+      },
+
+      openPresensiExportModal() {
+        const monthInput = document.getElementById('presensi-export-month');
+        if (monthInput) monthInput.value = this.presensiExportMonth;
+        this.openModal('modal-export-presensi');
+      },
+
+      async exportPresensiXlsx() {
+        const monthInput = document.getElementById('presensi-export-month');
+        const monthValue = monthInput?.value || '';
+        if (!/^\d{4}-\d{2}$/.test(monthValue)) {
+          monthInput?.reportValidity();
+          return;
+        }
+        if (typeof XLSX === 'undefined') {
+          this.showToast('Library Excel belum tersedia', 'error');
+          return;
+        }
+
+        const [year, month] = monthValue.split('-');
+        const kelas = document.getElementById('presensi-filter-kelas')?.value || 'ALL';
+        const kelompok = document.getElementById('presensi-filter-kelompok')?.value || 'ALL';
+        const query = `kelas=${encodeURIComponent(kelas)}&kelompok=${encodeURIComponent(kelompok)}`;
+        this.presensiExportMonth = monthValue;
+
+        try {
+          const [studentResponse, attendanceResponse] = await Promise.all([
+            this.api(`/api/siswa?${query}`),
+            this.api(`/api/presensi?${query}&bulan=${month}&tahun=${year}`)
+          ]);
+          const students = studentResponse.data || [];
+          const attendance = (attendanceResponse.data || []).filter(record => record.tanggal?.startsWith(monthValue));
+          if (!students.length) {
+            this.showToast('Tidak ada santri pada filter kelas/kelompok ini', 'error');
+            return;
+          }
+          if (!attendance.length) {
+            this.showToast('Tidak ada data presensi pada bulan dan filter ini', 'error');
+            return;
+          }
+
+          const dates = [...new Set(attendance.map(record => record.tanggal).filter(Boolean))].sort();
+          const groups = new Map();
+          students.forEach(student => {
+            const groupName = student.kelompok || 'Tanpa Kelompok';
+            if (!groups.has(groupName)) groups.set(groupName, []);
+            groups.get(groupName).push(student);
+          });
+
+          const statusCodes = { hadir: 'H', h: 'H', izin: 'I', i: 'I', sakit: 'S', s: 'S', alpa: 'A', a: 'A' };
+          const statusByStudentDate = new Map();
+          attendance.forEach(record => {
+            const key = `${record.siswaId}|${record.tanggal}`;
+            const current = statusByStudentDate.get(key);
+            if (!current || String(record.updatedAt || '') >= String(current.updatedAt || '')) {
+              statusByStudentDate.set(key, {
+                status: statusCodes[String(record.status || '').trim().toLowerCase()] || '',
+                updatedAt: record.updatedAt || ''
+              });
+            }
+          });
+
+          const dateHeaders = dates.map(date => new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }));
+          const headers = ['Kelompok', 'Nama', ...dateHeaders, 'Rata-rata H (%)', 'Rata-rata I (%)', 'Rata-rata S (%)', 'Rata-rata A (%)'];
+          const rows = [[`BULAN: ${new Date(`${monthValue}-01T00:00:00`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`], headers];
+          const summaryRows = [];
+          const averageColumnStart = 2 + dates.length;
+
+          [...groups.entries()].sort(([first], [second]) => first.localeCompare(second, 'id')).forEach(([groupName, groupStudents]) => {
+            groupStudents.sort((first, second) => first.nama.localeCompare(second.nama, 'id'));
+            const statusTotals = { H: 0, I: 0, S: 0, A: 0 };
+
+            groupStudents.forEach(student => {
+              const values = dates.map(date => {
+                const status = statusByStudentDate.get(`${student.id}|${date}`)?.status || '';
+                if (status) statusTotals[status] += 1;
+                return status;
+              });
+              rows.push([groupName, student.nama, ...values, '', '', '', '']);
+            });
+
+            const denominator = Object.values(statusTotals).reduce((sum, count) => sum + count, 0);
+            const averages = ['H', 'I', 'S', 'A'].map(status => denominator ? statusTotals[status] / denominator : null);
+            summaryRows.push(rows.length);
+            rows.push([groupName, 'RATA-RATA KELOMPOK', ...dates.map(() => ''), ...averages]);
+          });
+
+          const worksheet = XLSX.utils.aoa_to_sheet(rows);
+          const lastColumn = headers.length - 1;
+          worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: lastColumn } }];
+          worksheet['!freeze'] = { xSplit: 2, ySplit: 2, topLeftCell: 'C3', activePane: 'bottomRight', state: 'frozen' };
+          worksheet['!autofilter'] = { ref: `A2:${XLSX.utils.encode_col(lastColumn)}${rows.length}` };
+          worksheet['!cols'] = [
+            { wch: 22 },
+            { wch: 34 },
+            ...dates.map(() => ({ wch: 12 })),
+            { wch: 17 }, { wch: 17 }, { wch: 17 }, { wch: 17 }
+          ];
+          summaryRows.forEach(rowIndex => {
+            ['H', 'I', 'S', 'A'].forEach((status, index) => {
+              const cell = worksheet[XLSX.utils.encode_cell({ r: rowIndex, c: averageColumnStart + index })];
+              if (cell && typeof cell.v === 'number') cell.z = '0.0%';
+            });
+          });
+
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, 'Riwayat Presensi');
+          XLSX.writeFile(workbook, `Riwayat_Presensi_${monthValue}.xlsx`);
+          this.closeModal('modal-export-presensi');
+          this.showToast('File Excel riwayat presensi berhasil dibuat', 'success');
+        } catch (error) {
+          this.showToast(error.message || 'Gagal mengekspor riwayat presensi', 'error');
+        }
       },
 
       openModalPresensi(p = null) {

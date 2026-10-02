@@ -1035,7 +1035,7 @@ async function handleRequest(req, res) {
       }
 
       if (kelas && kelas !== 'ALL') {
-        list = list.filter(p => p.kelas === kelas);
+        list = list.filter(p => normalizeKelas(p.kelas) === normalizeKelas(kelas));
       }
       if (kelompok && kelompok !== 'ALL') {
         list = list.filter(p => p.kelompok === kelompok);

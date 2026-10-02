@@ -20,6 +20,11 @@ const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').replace(/\/+$/, '');
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_TABLE = 'tpq_app_state';
+const SUPABASE_READ_CACHE_TTL_MS = 5000;
+let supabaseReadCache = null;
+let supabaseReadCacheTime = 0;
+let supabaseReadPromise = null;
+let supabaseReadVersion = 0;
 
 // Master referensi
 const MASTER_KELAS = ['PAUD A', 'PAUD B', 'KELAS 1', 'KELAS 2', 'KELAS 3', 'KELAS 4', 'KELAS 5', 'KELAS 6'];
@@ -337,6 +342,10 @@ function normalizeDatabase(data) {
   return data;
 }
 
+function cloneDatabase(data) {
+  return normalizeDatabase(JSON.parse(JSON.stringify(data)));
+}
+
 function loadDatabaseFromFile() {
   try {
     if (!fs.existsSync(DB_FILE)) {
@@ -360,24 +369,47 @@ async function loadDatabase() {
     return loadDatabaseFromFile();
   }
 
-  try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.main&select=payload`, {
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+  if (supabaseReadCache && Date.now() - supabaseReadCacheTime < SUPABASE_READ_CACHE_TTL_MS) {
+    return cloneDatabase(supabaseReadCache);
+  }
+  if (!supabaseReadPromise) {
+    const readVersion = supabaseReadVersion;
+    supabaseReadPromise = (async () => {
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.main&select=payload`, {
+          headers: {
+            apikey: SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+          }
+        });
+        if (!response.ok) throw new Error(`Supabase read failed: ${response.status} ${await response.text()}`);
+
+        const rows = await response.json();
+        let database;
+        if (rows.length && rows[0].payload) {
+          database = normalizeDatabase(rows[0].payload);
+        } else {
+          database = loadDatabaseFromFile();
+          if (!await saveDatabase(database, true)) throw new Error('Supabase seed initialization failed');
+        }
+
+        if (readVersion === supabaseReadVersion) {
+          supabaseReadCache = cloneDatabase(database);
+          supabaseReadCacheTime = Date.now();
+        }
+        return database;
+      } catch (err) {
+        console.error('Error membaca database Supabase:', err);
+        throw err;
       }
-    });
-    if (!response.ok) throw new Error(`Supabase read failed: ${response.status} ${await response.text()}`);
+    })();
+  }
 
-    const rows = await response.json();
-    if (rows.length && rows[0].payload) return normalizeDatabase(rows[0].payload);
-
-    const seedData = loadDatabaseFromFile();
-    if (!await saveDatabase(seedData, true)) throw new Error('Supabase seed initialization failed');
-    return seedData;
-  } catch (err) {
-    console.error('Error membaca database Supabase:', err);
-    throw err;
+  const pendingRead = supabaseReadPromise;
+  try {
+    return cloneDatabase(await pendingRead);
+  } finally {
+    if (supabaseReadPromise === pendingRead) supabaseReadPromise = null;
   }
 }
 
@@ -405,8 +437,14 @@ async function saveDatabase(data, ignoreDuplicates = false) {
       },
       body: JSON.stringify({ id: 'main', payload: data, updated_at: new Date().toISOString() })
     });
-    if (!response.ok) console.error('Error menyimpan database Supabase:', response.status, await response.text());
-    return response.ok;
+    if (!response.ok) {
+      console.error('Error menyimpan database Supabase:', response.status, await response.text());
+      return false;
+    }
+    supabaseReadVersion += 1;
+    supabaseReadCache = cloneDatabase(data);
+    supabaseReadCacheTime = Date.now();
+    return true;
   } catch (err) {
     console.error('Error menyimpan database Supabase:', err);
     return false;

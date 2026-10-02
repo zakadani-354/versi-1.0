@@ -150,7 +150,16 @@
       }
       body.printing-capaian #capaian-print-content {
         display: block !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+      }
+      body.printing-capaian #capaian-print-page-belum-tuntas {
+        page-break-before: always;
+        break-before: page;
+      }
+      body.printing-capaian .capaian-print-table tr {
         page-break-inside: avoid;
+        break-inside: avoid;
       }
       body.printing-capaian .capaian-print-box {
         display: grid !important;
@@ -819,11 +828,10 @@
           <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden card-print">
             <!-- Filter Bar Riwayat -->
             <div class="p-3 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 no-print">
-              <div class="relative w-full sm:w-64">
-                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
-                  <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                </span>
-                <input type="text" id="presensi-history-search" oninput="app.filterPresensiHistory()" placeholder="Cari nama santri..." class="w-full pl-8 pr-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+              <div class="w-full sm:w-64">
+                <select id="presensi-history-name-filter" aria-label="Filter nama santri" onchange="app.filterPresensiHistory()" class="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
+                  <option value="">Semua santri</option>
+                </select>
               </div>
               <span id="presensi-history-count" class="text-xs text-slate-400 font-semibold shrink-0"></span>
             </div>
@@ -1085,35 +1093,45 @@
               </div>
             </div>
             <div id="capaian-print-content" class="hidden">
-              <div class="text-center border-b-2 border-slate-800 pb-3 mb-4">
-                <h2 class="text-lg font-black uppercase">LAPORAN PENCAPAIAN MATERI BULANAN</h2>
-                <p class="text-base font-bold uppercase">TPQ BAITUSSALAM HUDA MANSURIN</p>
-                <p id="capaian-print-period" class="text-sm uppercase">BULAN : - | SEMESTER : - | TAHUN AJARAN : -</p>
-              </div>
-              <div class="text-left mb-4">
-                <p id="capaian-print-student" class="text-sm font-bold uppercase">NAMA SANTRI : -</p>
-                <p id="capaian-print-student-meta" class="text-sm uppercase">KELAS : - | KELOMPOK : -</p>
-              </div>
-              <div class="capaian-print-box border border-slate-300 p-3 mb-4 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_220px] gap-4 items-center">
-                <div>
-                  <p class="text-base font-black uppercase">Ketuntasan Materi</p>
-                  <p id="capaian-print-formula" class="text-xs mt-1">Materi tuntas / seluruh target materi kelas x 100%</p>
-                  <p id="capaian-print-percentage" class="text-2xl font-black text-emerald-700 mt-1">0%</p>
+              <div id="capaian-print-page-tuntas" class="capaian-print-page">
+                <div class="text-center border-b-2 border-slate-800 pb-3 mb-4">
+                  <h2 class="text-lg font-black uppercase">LAPORAN PENCAPAIAN MATERI BULANAN</h2>
+                  <p class="text-base font-bold uppercase">TPQ BAITUSSALAM HUDA MANSURIN</p>
+                  <p id="capaian-print-period" class="text-sm uppercase">BULAN : - | SEMESTER : - | TAHUN AJARAN : -</p>
                 </div>
-                <div class="h-48 flex items-center justify-center">
-                  <canvas id="chart-capaian-print"></canvas>
+                <div class="text-left mb-4">
+                  <p id="capaian-print-student" class="text-sm font-bold uppercase">NAMA SANTRI : -</p>
+                  <p id="capaian-print-student-meta" class="text-sm uppercase">KELAS : - | KELOMPOK : -</p>
                 </div>
+                <div class="capaian-print-box border border-slate-300 p-3 mb-4 grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_220px] gap-4 items-center">
+                  <div>
+                    <p class="text-base font-black uppercase">Ketuntasan Materi</p>
+                    <p id="capaian-print-formula" class="text-xs mt-1">Materi tuntas / seluruh target materi kelas x 100%</p>
+                    <p id="capaian-print-percentage" class="text-2xl font-black text-emerald-700 mt-1">0%</p>
+                  </div>
+                  <div class="h-48 flex items-center justify-center">
+                    <canvas id="chart-capaian-print"></canvas>
+                  </div>
+                </div>
+                <h3 class="text-base font-black uppercase border-b border-slate-800 pb-1">Materi Tuntas</h3>
+                <table class="capaian-print-table mb-5">
+                  <thead><tr><th class="w-10">No</th><th>Kategori</th><th>Target Materi</th><th>Catatan</th></tr></thead>
+                  <tbody id="capaian-print-tuntas"></tbody>
+                </table>
               </div>
-              <h3 class="text-base font-black uppercase border-b border-slate-800 pb-1">Materi Tuntas</h3>
-              <table class="capaian-print-table mb-5">
-                <thead><tr><th class="w-10">No</th><th>Kategori</th><th>Target Materi</th><th>Catatan</th></tr></thead>
-                <tbody id="capaian-print-tuntas"></tbody>
-              </table>
-              <h3 class="text-base font-black uppercase border-b border-slate-800 pb-1">Materi Belum Tuntas</h3>
-              <table class="capaian-print-table">
-                <thead><tr><th class="w-10">No</th><th>Kategori</th><th>Target Materi</th><th>Status / Catatan</th></tr></thead>
-                <tbody id="capaian-print-belum-tuntas"></tbody>
-              </table>
+              <div id="capaian-print-page-belum-tuntas" class="capaian-print-page">
+                <div class="text-center border-b-2 border-slate-800 pb-2 mb-3">
+                  <h2 class="text-base font-black uppercase">LAPORAN PENCAPAIAN MATERI BULANAN</h2>
+                  <p id="capaian-print-student-page2" class="text-xs font-bold uppercase"></p>
+                  <p id="capaian-print-student-meta-page2" class="text-xs uppercase"></p>
+                  <p id="capaian-print-period-page2" class="text-xs uppercase"></p>
+                </div>
+                <h3 class="text-base font-black uppercase border-b border-slate-800 pb-1">Materi Belum Tuntas</h3>
+                <table class="capaian-print-table">
+                  <thead><tr><th class="w-10">No</th><th>Kategori</th><th>Target Materi</th><th>Status / Catatan</th></tr></thead>
+                  <tbody id="capaian-print-belum-tuntas"></tbody>
+                </table>
+              </div>
             </div>
             <div id="eval-visualization-screen-body" class="grid grid-cols-1 gap-3 items-start">
               <div class="h-56 rounded-lg border border-slate-200 p-3">
@@ -1918,6 +1936,10 @@
       jurnalList: [],
       presensiInputData: [],
       presensiHistoryList: [],
+      apiCache: new Map(),
+      apiRequests: new Map(),
+      apiCacheVersion: 0,
+      apiCacheTtlMs: 10000,
       siswaList: [],
       targetList: [],
       targetMateriCache: {},
@@ -1951,44 +1973,75 @@
 
       // API Helper
       async api(endpoint, method = 'GET', data = null) {
-        const headers = { 'Content-Type': 'application/json' };
-        if (this.token) {
-          headers['Authorization'] = `Bearer ${this.token}`;
+        const requestMethod = method.toUpperCase();
+        const cacheable = requestMethod === 'GET';
+        const cacheVersion = this.apiCacheVersion;
+        const cacheKey = JSON.stringify([this.token, endpoint, cacheVersion]);
+        const cloneResponse = value => JSON.parse(JSON.stringify(value));
+
+        if (cacheable) {
+          const cached = this.apiCache.get(cacheKey);
+          if (cached && cached.expiresAt > Date.now()) return cloneResponse(cached.value);
+          const pending = this.apiRequests.get(cacheKey);
+          if (pending) return cloneResponse(await pending);
         }
 
-        const options = { method, headers };
-        if (data && (method === 'POST' || method === 'PUT')) {
-          options.body = JSON.stringify(data);
-        }
+        const request = (async () => {
+          const headers = { 'Content-Type': 'application/json' };
+          if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
 
-        try {
-          const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
-          const responseText = await res.text();
-          let json = {};
+          const options = { method: requestMethod, headers };
+          if (data && (requestMethod === 'POST' || requestMethod === 'PUT')) {
+            options.body = JSON.stringify(data);
+          }
 
-          if (responseText.trim()) {
-            try {
-              json = JSON.parse(responseText);
-            } catch (parseError) {
-              throw new Error(`Server mengirim respons yang tidak valid (HTTP ${res.status})`);
+          try {
+            const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
+            const responseText = await res.text();
+            let json = {};
+
+            if (responseText.trim()) {
+              try {
+                json = JSON.parse(responseText);
+              } catch (parseError) {
+                throw new Error(`Server mengirim respons yang tidak valid (HTTP ${res.status})`);
+              }
             }
-          }
 
-          if (!responseText.trim() && !res.ok) {
-            throw new Error(`Server tidak mengirim detail kesalahan (HTTP ${res.status})`);
-          }
+            if (!responseText.trim() && !res.ok) {
+              throw new Error(`Server tidak mengirim detail kesalahan (HTTP ${res.status})`);
+            }
 
-          if (!res.ok && res.status === 401) {
-            this.handleLogout();
-            throw new Error(json.message || 'Sesi telah berakhir');
+            if (!res.ok && res.status === 401) {
+              this.handleLogout();
+              throw new Error(json.message || 'Sesi telah berakhir');
+            }
+            if (!res.ok) {
+              throw new Error(json.message || `Permintaan gagal (HTTP ${res.status})`);
+            }
+
+            if (cacheable && cacheVersion === this.apiCacheVersion) {
+              this.apiCache.set(cacheKey, {
+                expiresAt: Date.now() + this.apiCacheTtlMs,
+                value: cloneResponse(json)
+              });
+            } else if (!cacheable) {
+              this.apiCacheVersion += 1;
+              this.apiCache.clear();
+            }
+            return json;
+          } catch (err) {
+            console.error(`API Error ${endpoint}:`, err);
+            throw err;
           }
-          if (!res.ok) {
-            throw new Error(json.message || `Permintaan gagal (HTTP ${res.status})`);
-          }
-          return json;
-        } catch (err) {
-          console.error(`API Error ${endpoint}:`, err);
-          throw err;
+        })();
+
+        if (!cacheable) return request;
+        this.apiRequests.set(cacheKey, request);
+        try {
+          return await request;
+        } finally {
+          if (this.apiRequests.get(cacheKey) === request) this.apiRequests.delete(cacheKey);
         }
       },
 
@@ -2901,7 +2954,16 @@
         try {
           const res = await this.api(`/api/presensi?kelas=${encodeURIComponent(kelas)}&kelompok=${encodeURIComponent(kelompok)}`);
           if (res.success) {
-            this.presensiHistoryList = res.data;
+            this.presensiHistoryList = res.data || [];
+            const nameFilter = document.getElementById('presensi-history-name-filter');
+            if (nameFilter) {
+              const selectedName = nameFilter.value;
+              const names = [...new Set(this.presensiHistoryList.map(item => item.nama).filter(Boolean))]
+                .sort((first, second) => first.localeCompare(second, 'id'));
+              nameFilter.replaceChildren(new Option('Semua santri', ''));
+              names.forEach(name => nameFilter.add(new Option(name, name)));
+              if (names.includes(selectedName)) nameFilter.value = selectedName;
+            }
             this.renderPresensiHistory();
           }
         } catch (e) {
@@ -2913,19 +2975,28 @@
         const tbody = document.getElementById('presensi-history-table-body');
         if (!tbody) return;
         tbody.innerHTML = '';
+        const selectedName = document.getElementById('presensi-history-name-filter')?.value || '';
+        const visibleHistory = (this.presensiHistoryList || []).filter(item => !selectedName || item.nama === selectedName);
+        const count = document.getElementById('presensi-history-count');
+        if (count) count.textContent = `${visibleHistory.length} dari ${(this.presensiHistoryList || []).length} rekaman`;
 
         if (!this.presensiHistoryList || this.presensiHistoryList.length === 0) {
           tbody.innerHTML = `<tr><td colspan="8" class="text-center p-6 text-slate-400">Belum ada rekaman riwayat presensi</td></tr>`;
           this.updateBulkBar('presensi');
           return;
         }
+        if (visibleHistory.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="8" class="text-center p-6 text-slate-400">Tidak ada riwayat untuk nama santri ini</td></tr>`;
+          this.updateBulkBar('presensi');
+          return;
+        }
 
-        this.presensiHistoryList.forEach(p => {
+        tbody.innerHTML = visibleHistory.map(p => {
           const badgeColor = p.status === 'Hadir' ? 'bg-emerald-100 text-emerald-800'
             : p.status === 'Sakit' ? 'bg-blue-100 text-blue-800'
             : p.status === 'Izin' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800';
 
-          tbody.innerHTML += `
+          return `
             <tr class="hover:bg-slate-50 transition">
               <td class="p-3 text-center no-print">
                 <input type="checkbox" class="presensi-item-check rounded text-brand-600 focus:ring-brand-500 w-4 h-4" value="${p.id}" onchange="app.handleItemCheck('presensi')">
@@ -2950,18 +3021,14 @@
               </td>
             </tr>
           `;
-        });
+        }).join('');
 
         this.updateBulkBar('presensi');
       },
 
       filterPresensiHistory() {
         if (!this.presensiHistoryList) return;
-        const q = (document.getElementById("presensi-history-search").value || "").toLowerCase();
-        const filtered = this.presensiHistoryList.filter(p => p.nama.toLowerCase().includes(q));
-        this.presensiHistoryList = filtered;
         this.renderPresensiHistory();
-        this.updateBulkBar("presensi");
       },
 
       openModalPresensi(p = null) {
@@ -3703,12 +3770,16 @@
         const percentage = total ? Math.round((complete / total) * 100) : 0;
         const semesterLabel = `${period.semester} (${period.semester === '2' ? 'GENAP' : 'GANJIL'})`;
         document.getElementById('capaian-print-student').textContent = `NAMA SANTRI : ${studentName}`;
+        document.getElementById('capaian-print-student-page2').textContent = `NAMA SANTRI : ${studentName}`;
         const studentMeta = document.getElementById('eval-student-meta')?.textContent || '';
-        const classGroup = studentMeta.match(/Kelas:\s*([^|]+)\|\s*Kelompok:\s*([^|]+)/i);
-        document.getElementById('capaian-print-student-meta').textContent = classGroup
+        const classGroup = studentMeta.match(/Kelas\s*:\s*([^|]+)\|\s*Kelompok\s*:\s*([^|]+)/i);
+        const studentMetaText = classGroup
           ? `KELAS : ${classGroup[1].trim()} | KELOMPOK : ${classGroup[2].trim()}`
           : 'KELAS : - | KELOMPOK : -';
+        document.getElementById('capaian-print-student-meta').textContent = studentMetaText;
+        document.getElementById('capaian-print-student-meta-page2').textContent = studentMetaText;
         document.getElementById('capaian-print-period').textContent = `BULAN : ${monthName.split(' ')[0].toUpperCase()} | SEMESTER : ${semesterLabel} | TAHUN AJARAN : ${period.tahunAjaran}`;
+        document.getElementById('capaian-print-period-page2').textContent = `BULAN : ${monthName.split(' ')[0].toUpperCase()} | SEMESTER : ${semesterLabel} | TAHUN AJARAN : ${period.tahunAjaran}`;
         document.getElementById('capaian-print-formula').textContent = `${complete} materi tuntas / ${total} seluruh target materi kelas x 100%`;
         document.getElementById('capaian-print-percentage').textContent = `${percentage}%`;
 

@@ -3666,7 +3666,7 @@
           targetData.filter(item => item.status !== 'Tuntas' && item.status !== 'Sedang Proses').length
         ];
         const statusLabels = ['Materi Tuntas', 'Sedang Proses', 'Belum Tuntas'];
-        const statusColors = ['#059669', '#f59e0b', '#ef4444'];
+        const statusColors = ['#8FC8A8', '#F0C66A', '#E8A09A'];
         const pieValueLabels = {
           id: 'capaianPieValueLabels',
           afterDraw: chartInstance => {
@@ -3679,8 +3679,8 @@
               const position = arc.getCenterPoint();
               const percent = Math.round((value / totalCount) * 100);
               context.save();
-              context.fillStyle = '#ffffff';
-              context.font = 'bold 11px sans-serif';
+              context.fillStyle = '#17392F';
+              context.font = 'bold 12px sans-serif';
               context.textAlign = 'center';
               context.textBaseline = 'middle';
               context.fillText(`${value} (${percent}%)`, position.x, position.y);
@@ -3697,17 +3697,28 @@
               data: statusCounts,
               backgroundColor: statusColors,
               borderColor: '#ffffff',
-              borderWidth: 3
+              borderWidth: 3,
+              borderRadius: 6,
+              spacing: 2,
+              hoverOffset: 5
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '58%',
             plugins: {
               legend: {
                 display: true,
                 position: 'bottom',
-                labels: { boxWidth: 18, boxHeight: 18, padding: 12, font: { size: 14, weight: 'bold' } }
+                labels: {
+                  color: '#29443B',
+                  usePointStyle: true,
+                  pointStyle: 'circle',
+                  boxWidth: 12,
+                  padding: 14,
+                  font: { size: 13, weight: '600' }
+                }
               },
               tooltip: {
                 callbacks: {
@@ -3735,13 +3746,16 @@
                 data: statusCounts,
                 backgroundColor: statusColors,
                 borderColor: '#ffffff',
-                borderWidth: 2
+                borderWidth: 2,
+                borderRadius: 4,
+                spacing: 1
               }]
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
               animation: false,
+              cutout: '58%',
               plugins: {
                 legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } },
                 tooltip: { enabled: false }

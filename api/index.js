@@ -781,7 +781,8 @@ async function handleRequest(req, res) {
       const totals = new Map();
       records.forEach(record => {
         const name = record[field] || fallbackLabel;
-        const summary = totals.get(name) || { name, hadir: 0 };
+        const summary = totals.get(name) || { name, hadir: 0, total: 0 };
+        summary.total++;
         if ((record.status || '').toLowerCase() === 'hadir') summary.hadir++;
         totals.set(name, summary);
       });
@@ -792,11 +793,6 @@ async function handleRequest(req, res) {
         presensiPeriode.filter(p => !kelas || kelas === 'ALL' || p.kelas === kelas),
         'kelompok',
         'Tanpa Kelompok'
-      ),
-      kelas: currentUser.role === 'guru' ? [] : summarizeAttendanceBy(
-        presensiPeriode.filter(p => !kelompok || kelompok === 'ALL' || p.kelompok === kelompok),
-        'kelas',
-        'Tanpa Kelas'
       )
     };
 

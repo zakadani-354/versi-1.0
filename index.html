@@ -2415,7 +2415,7 @@
 
       renderDashboard() {
         if (!this.dashboardData) return;
-        const { ringkasan, chartKelompok, chartKelompokList, chartComparison, perSiswa, filter } = this.dashboardData;
+        const { ringkasan, chartComparison, perSiswa, filter } = this.dashboardData;
 
         // Metric Cards
         document.getElementById('stat-total-siswa').textContent = ringkasan.totalSiswa || 0;
@@ -2424,7 +2424,7 @@
         document.getElementById('stat-total-presensi').textContent = ringkasan.totalPresensiRecord || 0;
 
         // Render Diagram Batang
-        this.renderChartBatang(chartKelompok, chartKelompokList, perSiswa, filter, chartComparison);
+        this.renderChartBatang(filter, chartComparison);
 
         // Render Diagram Pie
         this.renderChartPie(ringkasan);
@@ -2446,7 +2446,7 @@
         }
       },
 
-      renderChartBatang(chartKelompok, chartKelompokList, perSiswa, filter, chartComparison) {
+      renderChartBatang(filter, chartComparison) {
         const ctx = document.getElementById('chart-batang-presensi');
         if (!ctx) return;
 
@@ -2454,106 +2454,24 @@
           this.charts.batang.destroy();
         }
 
-        const defaultKelompok = this.meta?.kelompokList || ['Baitu Taqwa', 'Almansuriin', 'Al Huda', 'Al Malik', 'Miftahul Jannah', 'Baitul Makmur'];
-        const kelompokList = chartKelompokList?.length
-          ? chartKelompokList
-          : filter.kelompok && filter.kelompok !== 'ALL' ? [filter.kelompok] : defaultKelompok;
-        const colors = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16'];
-        const persenByKelompok = new Map((chartKelompok || []).map(item => [
-          item.kelompok,
-          item.persen ?? (item.total > 0 ? Math.round((item.hadir / item.total) * 100) : 0)
-        ]));
-        if (!chartKelompok?.length) {
-          const rekapSiswa = new Map();
-          (perSiswa || []).forEach(siswa => {
-            const rekap = rekapSiswa.get(siswa.kelompok) || { total: 0, hadir: 0 };
-            rekap.total += Number(siswa.totalSesi || 0);
-            rekap.hadir += Number(siswa.hadir || 0);
-            rekapSiswa.set(siswa.kelompok, rekap);
-          });
-          rekapSiswa.forEach((rekap, kelompok) => {
-            persenByKelompok.set(kelompok, rekap.total > 0 ? Math.round((rekap.hadir / rekap.total) * 100) : 0);
-          });
-        }
-        const labels = kelompokList;
-        const dataValues = kelompokList.map(kelompok => persenByKelompok.get(kelompok) || 0);
+        const labels = ['Baitu Taqwa', 'Almansuriin', 'Al Huda', 'Al Malik', 'Miftahul Jannah', 'Baitul Makmur'];
+        const attendanceByGroup = new Map((chartComparison?.kelompok || []).map(item => [item.name, item]));
+        const dataValues = labels.map(kelompok => {
+          const summary = attendanceByGroup.get(kelompok);
+          return summary?.total > 0 ? Math.round((summary.hadir / summary.total) * 100) : 0;
+        });
 
         const periodLabel = document.getElementById('chart-presensi-period');
         if (periodLabel) periodLabel.textContent = `Bulan ${filter.bulan}/${filter.tahun}`;
 
-        const selectedGroup = filter.kelompok && filter.kelompok !== 'ALL';
-        const selectedClass = filter.kelas && filter.kelas !== 'ALL' && this.currentUser?.role !== 'guru';
-        if (selectedGroup || selectedClass) {
-          const dimension = selectedGroup ? 'kelompok' : 'kelas';
-          const selectedName = selectedGroup ? filter.kelompok : filter.kelas;
-          const otherLabel = selectedGroup ? 'Kelompok Lain' : 'Kelas Lain';
-          const comparison = chartComparison?.[dimension] || [];
-          const selectedHadir = comparison.find(item => item.name === selectedName)?.hadir || 0;
-          const totalHadir = comparison.reduce((sum, item) => sum + Number(item.hadir || 0), 0);
-          const otherHadir = Math.max(0, totalHadir - selectedHadir);
-          const chartTitle = document.getElementById('chart-presensi-title');
-          const chartIcon = document.getElementById('chart-presensi-icon');
-          if (chartTitle) chartTitle.textContent = `Hadir: ${selectedName} vs ${otherLabel}`;
-          if (chartIcon) chartIcon.className = 'fa-solid fa-chart-pie text-brand-600';
-
-          const centerLabel = {
-            id: 'selectedAttendanceLabel',
-            afterDraw(chart) {
-              const { ctx, chartArea } = chart;
-              if (!chartArea) return;
-              const centerX = (chartArea.left + chartArea.right) / 2;
-              const centerY = (chartArea.top + chartArea.bottom) / 2;
-              const selectedPercent = totalHadir > 0 ? Math.round((selectedHadir / totalHadir) * 100) : 0;
-              ctx.save();
-              ctx.fillStyle = '#0f172a';
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'middle';
-              ctx.font = 'bold 12px sans-serif';
-              ctx.fillText(`${selectedHadir} hadir`, centerX, centerY - 8);
-              ctx.fillStyle = '#475569';
-              ctx.font = 'bold 11px sans-serif';
-              ctx.fillText(`${selectedPercent}% dari total`, centerX, centerY + 12);
-              ctx.restore();
-            }
-          };
-
-          this.charts.batang = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-              labels: [selectedName, otherLabel],
-              datasets: [{
-                data: [selectedHadir, otherHadir],
-                backgroundColor: ['#168A62', '#CBD5E1'],
-                hoverBackgroundColor: ['#11734F', '#94A3B8'],
-                borderWidth: 2,
-                borderColor: '#ffffff'
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              cutout: '68%',
-              plugins: {
-                legend: { display: true, position: 'bottom' },
-                tooltip: {
-                  callbacks: {
-                    label: context => {
-                      const value = Number(context.raw || 0);
-                      const percent = totalHadir > 0 ? Math.round((value / totalHadir) * 100) : 0;
-                      return `${context.label}: ${value} hadir (${percent}%)`;
-                    }
-                  }
-                }
-              }
-            },
-            plugins: [centerLabel]
-          });
-          return;
-        }
-
+        const selectedGroup = filter.kelompok && filter.kelompok !== 'ALL' ? filter.kelompok : null;
+        const selectedIndex = selectedGroup ? labels.indexOf(selectedGroup) : -1;
         const chartTitle = document.getElementById('chart-presensi-title');
         const chartIcon = document.getElementById('chart-presensi-icon');
-        if (chartTitle) chartTitle.textContent = 'Kehadiran Per Kelompok';
+        if (chartTitle) {
+          const classLabel = filter.kelas && filter.kelas !== 'ALL' ? ` - ${filter.kelas}` : '';
+          chartTitle.textContent = `Kehadiran Per Kelompok${selectedGroup ? `: ${selectedGroup}` : ''}${classLabel}`;
+        }
         if (chartIcon) chartIcon.className = 'fa-solid fa-chart-column text-brand-600';
 
         const barPercentageLabels = {
@@ -2582,12 +2500,30 @@
           type: 'bar',
           data: {
             labels,
-            datasets: [{
+            datasets: selectedIndex >= 0 ? [{
+              label: 'Kelompok Terpilih',
+              data: dataValues.map((value, index) => index === selectedIndex ? value : null),
+              backgroundColor: '#168A62',
+              hoverBackgroundColor: '#11734F',
+              barThickness: 30,
+              grouped: false,
+              borderRadius: 7
+            }, {
+              label: 'Kelompok Lain',
+              data: dataValues.map((value, index) => index === selectedIndex ? null : value),
+              backgroundColor: '#94A3B8',
+              hoverBackgroundColor: '#64748B',
+              barThickness: 16,
+              grouped: false,
+              borderRadius: 5
+            }] : [{
               label: 'Persentase Kehadiran',
-              data: dataValues.length > 0 ? dataValues : [0],
-              backgroundColor: dataValues.length > 0 ? dataValues.map((_, index) => colors[index % colors.length]) : ['#10b981'],
+              data: dataValues,
+              backgroundColor: '#168A62',
+              hoverBackgroundColor: '#11734F',
               borderRadius: 6,
-              hoverBackgroundColor: dataValues.length > 0 ? dataValues.map((_, index) => colors[index % colors.length]) : ['#059669']
+              categoryPercentage: 0.72,
+              barPercentage: 0.8
             }]
           },
           options: {

@@ -515,7 +515,7 @@
           <div id="dashboard-filter-controls" class="no-print flex flex-wrap items-center gap-2">
             <!-- Filter Bulan -->
             <select id="dash-filter-bulan" onchange="app.loadDashboard()" class="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-brand-500 outline-none">
-              <option value="ALL">Semua Bulan (Juli-Desember)</option>
+              <option value="ALL" selected>Semua Bulan</option>
               <option value="01">Januari</option>
               <option value="02">Februari</option>
               <option value="03">Maret</option>
@@ -524,7 +524,7 @@
               <option value="06">Juni</option>
               <option value="07">Juli</option>
               <option value="08">Agustus</option>
-              <option value="09" selected>September</option>
+              <option value="09">September</option>
               <option value="10">Oktober</option>
               <option value="11">November</option>
               <option value="12">Desember</option>
@@ -2001,7 +2001,7 @@
         if (this.token) {
           const valid = await this.verifyUser();
           if (valid) {
-            this.showApp();
+            this.showApp(true);
             return;
           }
         }
@@ -2269,16 +2269,20 @@
         document.getElementById('view-app').classList.add('hidden');
       },
 
-      showApp() {
+      showApp(restoreLastTab = false) {
         document.body.classList.remove('login-page');
         document.getElementById('view-login').classList.add('hidden');
         document.getElementById('view-app').classList.remove('hidden');
-        this.navigate('dashboard');
+        const savedTab = restoreLastTab ? sessionStorage.getItem('tpq_active_tab') : null;
+        const canRestoreTab = savedTab && document.getElementById(`tab-${savedTab}`) &&
+          (savedTab !== 'guru' || this.currentUser?.role === 'admin');
+        this.navigate(canRestoreTab ? savedTab : 'dashboard');
       },
 
       // Navigasi Tab
       navigate(tabId) {
         this.currentTab = tabId;
+        sessionStorage.setItem('tpq_active_tab', tabId);
 
         // Ubah tampilan Pane
         document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
@@ -2443,7 +2447,7 @@
         // Update Dokumen Cetak Meta
         const metaDoc = document.getElementById('print-doc-meta');
         if (metaDoc) {
-          const periodLabel = filter.bulan === 'ALL' ? `Juli-Desember ${filter.tahun}` : `${filter.bulan}/${filter.tahun}`;
+          const periodLabel = filter.bulan === 'ALL' ? `Semua Bulan ${filter.tahun}` : `${filter.bulan}/${filter.tahun}`;
           metaDoc.textContent = `Laporan Presensi & Capaian Bulan: ${periodLabel} | Kelas: ${filter.kelas} | Kelompok: ${filter.kelompok}`;
         }
       },
@@ -2467,7 +2471,7 @@
         const periodLabel = document.getElementById('chart-presensi-period');
         if (periodLabel) {
           periodLabel.textContent = filter.bulan === 'ALL'
-            ? `Juli-Desember ${filter.tahun}`
+            ? `Semua Bulan ${filter.tahun}`
             : `Bulan ${filter.bulan}/${filter.tahun}`;
         }
 

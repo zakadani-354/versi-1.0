@@ -649,7 +649,10 @@
               <p class="text-xs text-slate-400">Persentase kehadiran dan ketuntasan target materi santri</p>
             </div>
             <div class="flex items-center gap-2 no-print">
-              <input type="text" id="dash-search-siswa" oninput="app.filterDashboardTable()" placeholder="Cari nama santri..." class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-brand-500 outline-none w-48">
+              <label for="dash-filter-siswa" class="text-xs font-semibold text-slate-600">Filter Nama Santri</label>
+              <select id="dash-filter-siswa" aria-label="Filter Nama Santri" onchange="app.filterDashboardTable()" class="text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:ring-2 focus:ring-brand-500 outline-none w-48">
+                <option value="">Semua Santri</option>
+              </select>
             </div>
           </div>
 
@@ -2427,7 +2430,14 @@
         this.renderChartPie(ringkasan);
 
         // Render Tabel Per Siswa
-        this.renderDashboardTable(perSiswa);
+        const studentFilter = document.getElementById('dash-filter-siswa');
+        const selectedName = studentFilter.value;
+        const studentNames = [...new Set((perSiswa || []).map(student => student.nama))]
+          .sort((first, second) => first.localeCompare(second, 'id'));
+        studentFilter.replaceChildren(new Option('Semua Santri', ''));
+        studentNames.forEach(name => studentFilter.add(new Option(name, name)));
+        studentFilter.value = studentNames.includes(selectedName) ? selectedName : '';
+        this.filterDashboardTable();
 
         // Update Dokumen Cetak Meta
         const metaDoc = document.getElementById('print-doc-meta');
@@ -2655,8 +2665,10 @@
 
       filterDashboardTable() {
         if (!this.dashboardData || !this.dashboardData.perSiswa) return;
-        const q = (document.getElementById('dash-search-siswa').value || '').toLowerCase();
-        const filtered = this.dashboardData.perSiswa.filter(s => s.nama.toLowerCase().includes(q));
+        const selectedName = document.getElementById('dash-filter-siswa').value;
+        const filtered = selectedName
+          ? this.dashboardData.perSiswa.filter(s => s.nama === selectedName)
+          : this.dashboardData.perSiswa;
         this.renderDashboardTable(filtered);
       },
 

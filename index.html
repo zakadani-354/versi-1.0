@@ -2455,6 +2455,7 @@
         }
 
         const labels = ['Baitu Taqwa', 'Almansuriin', 'Al Huda', 'Al Malik', 'Miftahul Jannah', 'Baitul Makmur'];
+        const groupColors = ['#168A62', '#357DA3', '#C78A28', '#C35D55', '#7656A6', '#168D95'];
         const attendanceByGroup = new Map((chartComparison?.kelompok || []).map(item => [item.name, item]));
         const dataValues = labels.map(kelompok => {
           const summary = attendanceByGroup.get(kelompok);
@@ -2503,24 +2504,24 @@
             datasets: selectedIndex >= 0 ? [{
               label: 'Kelompok Terpilih',
               data: dataValues.map((value, index) => index === selectedIndex ? value : null),
-              backgroundColor: '#168A62',
-              hoverBackgroundColor: '#11734F',
+              backgroundColor: groupColors[selectedIndex],
+              hoverBackgroundColor: groupColors[selectedIndex],
               barThickness: 30,
               grouped: false,
               borderRadius: 7
             }, {
               label: 'Kelompok Lain',
               data: dataValues.map((value, index) => index === selectedIndex ? null : value),
-              backgroundColor: '#94A3B8',
-              hoverBackgroundColor: '#64748B',
+              backgroundColor: groupColors,
+              hoverBackgroundColor: groupColors,
               barThickness: 16,
               grouped: false,
               borderRadius: 5
             }] : [{
               label: 'Persentase Kehadiran',
               data: dataValues,
-              backgroundColor: '#168A62',
-              hoverBackgroundColor: '#11734F',
+              backgroundColor: groupColors,
+              hoverBackgroundColor: groupColors,
               borderRadius: 6,
               categoryPercentage: 0.72,
               barPercentage: 0.8
@@ -2541,8 +2542,11 @@
             scales: {
               y: {
                 beginAtZero: true,
-                max: 100,
-                ticks: { callback: value => `${value}%` }
+                max: 110,
+                ticks: {
+                  stepSize: 20,
+                  callback: value => value <= 100 ? `${value}%` : ''
+                }
               }
             }
           },

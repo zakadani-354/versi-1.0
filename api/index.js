@@ -708,7 +708,8 @@ async function handleRequest(req, res) {
 
     // Filter presensi per bulan
     const prefixTanggal = `${tahun}-${bulan}`;
-    let presensiFiltered = db.presensi.filter(p => p.tanggal && p.tanggal.startsWith(prefixTanggal));
+    const presensiPeriode = db.presensi.filter(p => p.tanggal && p.tanggal.startsWith(prefixTanggal));
+    let presensiFiltered = presensiPeriode;
 
     if (kelas && kelas !== 'ALL') {
       presensiFiltered = presensiFiltered.filter(p => p.kelas === kelas);
@@ -775,6 +776,29 @@ async function handleRequest(req, res) {
         persen: item.total > 0 ? Math.round((item.hadir / item.total) * 100) : 0
       };
     });
+
+    const summarizeAttendanceBy = (records, field, fallbackLabel) => {
+      const totals = new Map();
+      records.forEach(record => {
+        const name = record[field] || fallbackLabel;
+        const summary = totals.get(name) || { name, hadir: 0 };
+        if ((record.status || '').toLowerCase() === 'hadir') summary.hadir++;
+        totals.set(name, summary);
+      });
+      return [...totals.values()];
+    };
+    const chartComparison = {
+      kelompok: summarizeAttendanceBy(
+        presensiPeriode.filter(p => !kelas || kelas === 'ALL' || p.kelas === kelas),
+        'kelompok',
+        'Tanpa Kelompok'
+      ),
+      kelas: currentUser.role === 'guru' ? [] : summarizeAttendanceBy(
+        presensiPeriode.filter(p => !kelompok || kelompok === 'ALL' || p.kelompok === kelompok),
+        'kelas',
+        'Tanpa Kelas'
+      )
+    };
 
     // Resolve legacy attendance records whose student IDs are no longer present.
     const normalizeKey = value => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -862,6 +886,7 @@ async function handleRequest(req, res) {
       chartTanggal,
       chartKelompok,
       chartKelompokList,
+      chartComparison,
       perSiswa
     });
   }

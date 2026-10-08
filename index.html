@@ -612,8 +612,8 @@
           <div id="dashboard-bar-card" class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 lg:col-span-2">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <i class="fa-solid fa-chart-column text-brand-600"></i>
-                <span>Kehadiran Per Kelompok</span>
+                <i id="chart-presensi-icon" class="fa-solid fa-chart-column text-brand-600"></i>
+                <span id="chart-presensi-title">Kehadiran Per Kelompok</span>
               </h3>
               <span id="chart-presensi-period" class="text-xs text-slate-400">Bulan/Tahun Terpilih</span>
             </div>
@@ -2415,7 +2415,7 @@
 
       renderDashboard() {
         if (!this.dashboardData) return;
-        const { ringkasan, chartKelompok, chartKelompokList, perSiswa, filter } = this.dashboardData;
+        const { ringkasan, chartKelompok, chartKelompokList, chartComparison, perSiswa, filter } = this.dashboardData;
 
         // Metric Cards
         document.getElementById('stat-total-siswa').textContent = ringkasan.totalSiswa || 0;
@@ -2424,7 +2424,7 @@
         document.getElementById('stat-total-presensi').textContent = ringkasan.totalPresensiRecord || 0;
 
         // Render Diagram Batang
-        this.renderChartBatang(chartKelompok, chartKelompokList, perSiswa, filter);
+        this.renderChartBatang(chartKelompok, chartKelompokList, perSiswa, filter, chartComparison);
 
         // Render Diagram Pie
         this.renderChartPie(ringkasan);
@@ -2446,7 +2446,7 @@
         }
       },
 
-      renderChartBatang(chartKelompok, chartKelompokList, perSiswa, filter) {
+      renderChartBatang(chartKelompok, chartKelompokList, perSiswa, filter, chartComparison) {
         const ctx = document.getElementById('chart-batang-presensi');
         if (!ctx) return;
 
@@ -2480,6 +2480,81 @@
 
         const periodLabel = document.getElementById('chart-presensi-period');
         if (periodLabel) periodLabel.textContent = `Bulan ${filter.bulan}/${filter.tahun}`;
+
+        const selectedGroup = filter.kelompok && filter.kelompok !== 'ALL';
+        const selectedClass = filter.kelas && filter.kelas !== 'ALL' && this.currentUser?.role !== 'guru';
+        if (selectedGroup || selectedClass) {
+          const dimension = selectedGroup ? 'kelompok' : 'kelas';
+          const selectedName = selectedGroup ? filter.kelompok : filter.kelas;
+          const otherLabel = selectedGroup ? 'Kelompok Lain' : 'Kelas Lain';
+          const comparison = chartComparison?.[dimension] || [];
+          const selectedHadir = comparison.find(item => item.name === selectedName)?.hadir || 0;
+          const totalHadir = comparison.reduce((sum, item) => sum + Number(item.hadir || 0), 0);
+          const otherHadir = Math.max(0, totalHadir - selectedHadir);
+          const chartTitle = document.getElementById('chart-presensi-title');
+          const chartIcon = document.getElementById('chart-presensi-icon');
+          if (chartTitle) chartTitle.textContent = `Hadir: ${selectedName} vs ${otherLabel}`;
+          if (chartIcon) chartIcon.className = 'fa-solid fa-chart-pie text-brand-600';
+
+          const centerLabel = {
+            id: 'selectedAttendanceLabel',
+            afterDraw(chart) {
+              const { ctx, chartArea } = chart;
+              if (!chartArea) return;
+              const centerX = (chartArea.left + chartArea.right) / 2;
+              const centerY = (chartArea.top + chartArea.bottom) / 2;
+              const selectedPercent = totalHadir > 0 ? Math.round((selectedHadir / totalHadir) * 100) : 0;
+              ctx.save();
+              ctx.fillStyle = '#0f172a';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.font = 'bold 12px sans-serif';
+              ctx.fillText(`${selectedHadir} hadir`, centerX, centerY - 8);
+              ctx.fillStyle = '#475569';
+              ctx.font = 'bold 11px sans-serif';
+              ctx.fillText(`${selectedPercent}% dari total`, centerX, centerY + 12);
+              ctx.restore();
+            }
+          };
+
+          this.charts.batang = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+              labels: [selectedName, otherLabel],
+              datasets: [{
+                data: [selectedHadir, otherHadir],
+                backgroundColor: ['#168A62', '#CBD5E1'],
+                hoverBackgroundColor: ['#11734F', '#94A3B8'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: '68%',
+              plugins: {
+                legend: { display: true, position: 'bottom' },
+                tooltip: {
+                  callbacks: {
+                    label: context => {
+                      const value = Number(context.raw || 0);
+                      const percent = totalHadir > 0 ? Math.round((value / totalHadir) * 100) : 0;
+                      return `${context.label}: ${value} hadir (${percent}%)`;
+                    }
+                  }
+                }
+              }
+            },
+            plugins: [centerLabel]
+          });
+          return;
+        }
+
+        const chartTitle = document.getElementById('chart-presensi-title');
+        const chartIcon = document.getElementById('chart-presensi-icon');
+        if (chartTitle) chartTitle.textContent = 'Kehadiran Per Kelompok';
+        if (chartIcon) chartIcon.className = 'fa-solid fa-chart-column text-brand-600';
 
         const barPercentageLabels = {
           id: 'barValueLabels',

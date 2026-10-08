@@ -515,6 +515,7 @@
           <div id="dashboard-filter-controls" class="no-print flex flex-wrap items-center gap-2">
             <!-- Filter Bulan -->
             <select id="dash-filter-bulan" onchange="app.loadDashboard()" class="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-brand-500 outline-none">
+              <option value="ALL">Semua Bulan (Juli-Desember)</option>
               <option value="01">Januari</option>
               <option value="02">Februari</option>
               <option value="03">Maret</option>
@@ -2442,7 +2443,8 @@
         // Update Dokumen Cetak Meta
         const metaDoc = document.getElementById('print-doc-meta');
         if (metaDoc) {
-          metaDoc.textContent = `Laporan Presensi & Capaian Bulan: ${filter.bulan}/${filter.tahun} | Kelas: ${filter.kelas} | Kelompok: ${filter.kelompok}`;
+          const periodLabel = filter.bulan === 'ALL' ? `Juli-Desember ${filter.tahun}` : `${filter.bulan}/${filter.tahun}`;
+          metaDoc.textContent = `Laporan Presensi & Capaian Bulan: ${periodLabel} | Kelas: ${filter.kelas} | Kelompok: ${filter.kelompok}`;
         }
       },
 
@@ -2463,7 +2465,11 @@
         });
 
         const periodLabel = document.getElementById('chart-presensi-period');
-        if (periodLabel) periodLabel.textContent = `Bulan ${filter.bulan}/${filter.tahun}`;
+        if (periodLabel) {
+          periodLabel.textContent = filter.bulan === 'ALL'
+            ? `Juli-Desember ${filter.tahun}`
+            : `Bulan ${filter.bulan}/${filter.tahun}`;
+        }
 
         const selectedGroup = filter.kelompok && filter.kelompok !== 'ALL' ? filter.kelompok : null;
         const selectedIndex = selectedGroup ? labels.indexOf(selectedGroup) : -1;

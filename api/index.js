@@ -706,9 +706,13 @@ async function handleRequest(req, res) {
       siswaFiltered = siswaFiltered.filter(s => s.kelompok === kelompok);
     }
 
-    // Filter presensi per bulan
-    const prefixTanggal = `${tahun}-${bulan}`;
-    const presensiPeriode = db.presensi.filter(p => p.tanggal && p.tanggal.startsWith(prefixTanggal));
+    // Filter presensi per bulan or semester range
+    const monthPrefixes = bulan === 'ALL'
+      ? Array.from({ length: 6 }, (_, index) => `${tahun}-${String(index + 7).padStart(2, '0')}`)
+      : [`${tahun}-${bulan}`];
+    const presensiPeriode = db.presensi.filter(p =>
+      p.tanggal && monthPrefixes.some(prefix => p.tanggal.startsWith(prefix))
+    );
     let presensiFiltered = presensiPeriode;
 
     if (kelas && kelas !== 'ALL') {

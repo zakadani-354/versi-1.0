@@ -1382,7 +1382,8 @@
                   <th class="p-3 text-center w-12">No</th>
                   <th class="p-3">Nama Guru</th>
                   <th class="p-3">Username</th>
-                  <th class="p-3">Kelas yang Diampu</th>
+                  <th class="p-3">Hak Akses / Peran</th>
+                  <th class="p-3">Kelas Binaan</th>
                   <th class="p-3">Status Akses</th>
                   <th class="p-3 text-center no-print">Aksi</th>
                 </tr>
@@ -1668,10 +1669,25 @@
           <p id="modal-guru-pass-hint" class="text-[11px] text-slate-400 mt-1">Kosongkan jika tidak ingin mengubah password saat edit</p>
         </div>
         <div>
+          <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Hak Akses / Peran</label>
+          <select id="modal-guru-role" required onchange="app.handleGuruRoleChange()" class="w-full text-xs font-semibold p-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none">
+            <option value="guru">Guru Kelas (Akses 1 Kelas Binaan)</option>
+            <option value="koordinator">Koordinator Guru (Akses Semua Kelas & Kelompok)</option>
+          </select>
+        </div>
+        <div id="modal-guru-kelas-container">
           <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Kelas yang Diampu</label>
           <select id="modal-guru-kelas" required class="w-full text-xs font-semibold p-2.5 bg-slate-50 border rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none">
             <!-- Diisi via JS -->
           </select>
+          <p class="text-[11px] text-slate-400 mt-1">Pilih kelas yang dibina oleh guru ini.</p>
+        </div>
+        <div id="modal-guru-koord-hint" class="hidden p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-700 text-xs">
+          <div class="flex items-center gap-1.5 font-bold mb-1">
+            <i class="fa-solid fa-shield-halved text-indigo-600"></i>
+            <span>Hak Akses Koordinator Guru</span>
+          </div>
+          <p class="text-[11px] text-indigo-600">Dapat melihat data seluruh santri, menginput materi/presensi/rapor semua kelas, serta mendownload/export data tanpa batasan kelas.</p>
         </div>
         <div class="flex gap-2 pt-2">
           <button type="button" onclick="app.closeModal('modal-guru')" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition">Batal</button>
@@ -2161,6 +2177,9 @@
           if (this.currentUser.role === 'admin') {
             roleEl.textContent = 'Super Admin TPQ';
             roleEl.className = 'text-[10px] font-bold text-amber-600 uppercase';
+          } else if (this.currentUser.role === 'koordinator') {
+            roleEl.textContent = 'Koordinator Guru';
+            roleEl.className = 'text-[10px] font-bold text-indigo-600 uppercase';
           } else {
             roleEl.textContent = `Guru ${this.currentUser.kelas || ''}`;
             roleEl.className = 'text-[10px] font-bold text-brand-600 uppercase';
@@ -2174,25 +2193,38 @@
         } else {
           if (guruNav) guruNav.classList.add('hidden');
           if (guruBottomNav) guruBottomNav.classList.add('hidden');
+        }
 
-          // Kunci selector kelas untuk Guru
-          const lockClass = (id) => {
+        // Kunci selector kelas HANYA untuk Guru Kelas biasa
+        const classElementIds = [
+          'dash-filter-kelas',
+          'jurnal-filter-kelas',
+          'presensi-filter-kelas',
+          'siswa-filter-kelas',
+          'target-filter-kelas',
+          'rapor-filter-kelas',
+          'modal-jurnal-kelas',
+          'modal-siswa-kelas',
+          'modal-target-kelas'
+        ];
+
+        if (this.currentUser.role === 'guru') {
+          classElementIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
               el.value = this.currentUser.kelas;
               el.disabled = true;
               el.classList.add('bg-slate-100', 'cursor-not-allowed');
             }
-          };
-          lockClass('dash-filter-kelas');
-          lockClass('jurnal-filter-kelas');
-          lockClass('presensi-filter-kelas');
-          lockClass('siswa-filter-kelas');
-          lockClass('target-filter-kelas');
-          lockClass('rapor-filter-kelas');
-          lockClass('modal-jurnal-kelas');
-          lockClass('modal-siswa-kelas');
-          lockClass('modal-target-kelas');
+          });
+        } else {
+          classElementIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              el.disabled = false;
+              el.classList.remove('bg-slate-100', 'cursor-not-allowed');
+            }
+          });
         }
       },
 
@@ -4567,20 +4599,27 @@
         tbody.innerHTML = '';
 
         if (!this.guruList || this.guruList.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="6" class="text-center p-6 text-slate-400">Belum ada akun guru yang didaftarkan</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="7" class="text-center p-6 text-slate-400">Belum ada akun guru yang didaftarkan</td></tr>`;
           return;
         }
 
         this.guruList.forEach((g, idx) => {
+          const isKoord = g.role === 'koordinator';
+          const roleBadge = isKoord
+            ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"><i class="fa-solid fa-user-shield text-[10px]"></i> Koordinator Guru</span>`
+            : `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200"><i class="fa-solid fa-chalkboard-user text-[10px]"></i> Guru Kelas</span>`;
+          const kelasBadge = isKoord
+            ? `<span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200">Semua Kelas & Kelompok</span>`
+            : `<span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200">${g.kelas || '-'}</span>`;
+
           tbody.innerHTML += `
             <tr class="hover:bg-slate-50 transition">
               <td class="p-3 text-center text-slate-400 font-semibold">${idx + 1}</td>
               <td class="p-3 font-bold text-slate-800">${g.nama}</td>
               <td class="p-3 font-mono text-xs text-brand-700 bg-brand-50 px-2 py-1 rounded-md w-max">${g.username}</td>
-              <td class="p-3">
-                <span class="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 text-slate-800 border border-slate-200">${g.kelas}</span>
-              </td>
-              <td class="p-3">
+              <td class="p-3 whitespace-nowrap">${roleBadge}</td>
+              <td class="p-3 whitespace-nowrap">${kelasBadge}</td>
+              <td class="p-3 whitespace-nowrap">
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
                   <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Aktif
                 </span>
@@ -4600,6 +4639,22 @@
         });
       },
 
+      handleGuruRoleChange() {
+        const role = document.getElementById('modal-guru-role')?.value || 'guru';
+        const kelasContainer = document.getElementById('modal-guru-kelas-container');
+        const koordHint = document.getElementById('modal-guru-koord-hint');
+        const kelasSelect = document.getElementById('modal-guru-kelas');
+        if (role === 'koordinator') {
+          if (kelasContainer) kelasContainer.classList.add('hidden');
+          if (koordHint) koordHint.classList.remove('hidden');
+          if (kelasSelect) kelasSelect.removeAttribute('required');
+        } else {
+          if (kelasContainer) kelasContainer.classList.remove('hidden');
+          if (koordHint) koordHint.classList.add('hidden');
+          if (kelasSelect) kelasSelect.setAttribute('required', 'required');
+        }
+      },
+
       openModalGuru(g = null) {
         document.getElementById('modal-guru-id').value = g ? g.id : '';
         document.getElementById('modal-guru-title').innerHTML = g
@@ -4613,8 +4668,14 @@
 
         document.getElementById('modal-guru-password').value = '';
         document.getElementById('modal-guru-pass-hint').style.display = g ? 'block' : 'none';
-        document.getElementById('modal-guru-kelas').value = g ? g.kelas : 'PAUD A';
 
+        const roleEl = document.getElementById('modal-guru-role');
+        if (roleEl) roleEl.value = g ? (g.role || 'guru') : 'guru';
+
+        const kelasEl = document.getElementById('modal-guru-kelas');
+        if (kelasEl) kelasEl.value = g && g.kelas ? g.kelas : 'PAUD A';
+
+        this.handleGuruRoleChange();
         this.openModal('modal-guru');
       },
 
@@ -4626,11 +4687,15 @@
       async saveGuru(e) {
         e.preventDefault();
         const id = document.getElementById('modal-guru-id').value;
+        const role = document.getElementById('modal-guru-role')?.value || 'guru';
+        const kelas = role === 'koordinator' ? null : document.getElementById('modal-guru-kelas').value;
+
         const data = {
           nama: document.getElementById('modal-guru-nama').value,
           username: document.getElementById('modal-guru-username').value,
           password: document.getElementById('modal-guru-password').value,
-          kelas: document.getElementById('modal-guru-kelas').value
+          role,
+          kelas
         };
 
         try {
@@ -4643,7 +4708,7 @@
               return;
             }
             await this.api('/api/guru', 'POST', data);
-            this.showToast('Akun guru berhasil dibuat', 'success');
+            this.showToast(`Akun ${role === 'koordinator' ? 'koordinator guru' : 'guru'} berhasil dibuat`, 'success');
           }
           this.closeModal('modal-guru');
           this.loadGuru();

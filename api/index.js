@@ -59,6 +59,17 @@ function normalizeKelas(kelas) {
   return match ? match[1] : value;
 }
 
+// Role helper: guru BIASA = hanya akses kelas sendiri. koordinator = akses semua kelas (tapi bukan admin)
+function isGuruBiasa(user) {
+  return user && user.role === 'guru';
+}
+function isKoordinator(user) {
+  return user && user.role === 'koordinator';
+}
+function isTeacherRole(user) {
+  return user && (user.role === 'guru' || user.role === 'koordinator');
+}
+
 // Inisialisasi Database Default (Seed Data)
 function getInitialData() {
   const users = [
@@ -141,6 +152,15 @@ function getInitialData() {
       nama: 'Ustadz Abdullah',
       role: 'guru',
       kelas: 'KELAS 6',
+      createdAt: '2026-09-01T08:00:00.000Z'
+    },
+    {
+      id: 'usr_koordinator',
+      username: 'koordinator',
+      password: 'guru123',
+      nama: 'Ustadzah Siti Rahmah (Koordinator)',
+      role: 'koordinator',
+      kelas: null,
       createdAt: '2026-09-01T08:00:00.000Z'
     }
   ];
@@ -693,7 +713,7 @@ async function handleRequest(req, res) {
     tahun = tahun || String(now.getFullYear());
 
     // Batasi jika Guru biasa
-    if (currentUser.role === 'guru') {
+    if (isGuruBiasa(currentUser)) {
       kelas = currentUser.kelas;
     }
 
@@ -897,7 +917,7 @@ async function handleRequest(req, res) {
   if (pathname === '/api/jurnal') {
     if (method === 'GET') {
       let { kelas, q, tanggal } = query;
-      if (currentUser.role === 'guru') {
+      if (isGuruBiasa(currentUser)) {
         kelas = currentUser.kelas;
       }
 
@@ -928,7 +948,7 @@ async function handleRequest(req, res) {
         return sendJSON(res, 400, { success: false, message: 'Tanggal, kelas, dan materi wajib diisi' });
       }
 
-      if (currentUser.role === 'guru' && kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Anda hanya boleh mengisi jurnal untuk kelas Anda' });
       }
 
@@ -959,7 +979,7 @@ async function handleRequest(req, res) {
     // Jika Guru, hanya boleh hapus jurnal kelasnya
     db.jurnal = db.jurnal.filter(j => {
       if (ids.includes(j.id)) {
-        if (currentUser.role === 'guru' && j.kelas !== currentUser.kelas) {
+        if (isGuruBiasa(currentUser) && j.kelas !== currentUser.kelas) {
           return true; // Jangan hapus jika bukan kelasnya
         }
         return false;
@@ -981,14 +1001,14 @@ async function handleRequest(req, res) {
         return sendJSON(res, 404, { success: false, message: 'Jurnal tidak ditemukan' });
       }
 
-      if (currentUser.role === 'guru' && db.jurnal[index].kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && db.jurnal[index].kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Anda tidak memiliki hak mengubah jurnal kelas ini' });
       }
 
       db.jurnal[index] = {
         ...db.jurnal[index],
         tanggal: body.tanggal || db.jurnal[index].tanggal,
-        kelas: currentUser.role === 'guru' ? currentUser.kelas : (body.kelas || db.jurnal[index].kelas),
+        kelas: isGuruBiasa(currentUser) ? currentUser.kelas : (body.kelas || db.jurnal[index].kelas),
         guru: body.guru || db.jurnal[index].guru,
         materi: body.materi || db.jurnal[index].materi,
         kehadiran: body.kehadiran !== undefined ? Number(body.kehadiran) : db.jurnal[index].kehadiran,
@@ -1006,7 +1026,7 @@ async function handleRequest(req, res) {
         return sendJSON(res, 404, { success: false, message: 'Jurnal tidak ditemukan' });
       }
 
-      if (currentUser.role === 'guru' && db.jurnal[index].kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && db.jurnal[index].kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Anda tidak berhak menghapus jurnal kelas ini' });
       }
 
@@ -1022,7 +1042,7 @@ async function handleRequest(req, res) {
   if (pathname === '/api/presensi') {
     if (method === 'GET') {
       let { tanggal, kelas, kelompok, bulan, tahun, siswaId, semester, tahunAjaran } = query;
-      if (currentUser.role === 'guru') {
+      if (isGuruBiasa(currentUser)) {
         kelas = currentUser.kelas;
       }
 
@@ -1080,7 +1100,7 @@ async function handleRequest(req, res) {
       return sendJSON(res, 400, { success: false, message: 'Data presensi tidak lengkap' });
     }
 
-    if (currentUser.role === 'guru' && kelas !== currentUser.kelas) {
+    if (isGuruBiasa(currentUser) && kelas !== currentUser.kelas) {
       return sendJSON(res, 403, { success: false, message: 'Anda hanya boleh menginput presensi di kelas Anda' });
     }
 
@@ -1119,7 +1139,7 @@ async function handleRequest(req, res) {
 
     db.presensi = db.presensi.filter(p => {
       if (ids.includes(p.id)) {
-        if (currentUser.role === 'guru' && p.kelas !== currentUser.kelas) {
+        if (isGuruBiasa(currentUser) && p.kelas !== currentUser.kelas) {
           return true;
         }
         return false;
@@ -1141,7 +1161,7 @@ async function handleRequest(req, res) {
         return sendJSON(res, 404, { success: false, message: 'Data presensi tidak ditemukan' });
       }
 
-      if (currentUser.role === 'guru' && db.presensi[index].kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && db.presensi[index].kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
       }
 
@@ -1162,7 +1182,7 @@ async function handleRequest(req, res) {
         return sendJSON(res, 404, { success: false, message: 'Data presensi tidak ditemukan' });
       }
 
-      if (currentUser.role === 'guru' && db.presensi[index].kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && db.presensi[index].kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
       }
 
@@ -1178,7 +1198,7 @@ async function handleRequest(req, res) {
   if (pathname === '/api/siswa') {
     if (method === 'GET') {
       let { kelas, kelompok, q } = query;
-      if (currentUser.role === 'guru') {
+      if (isGuruBiasa(currentUser)) {
         kelas = currentUser.kelas;
       }
 
@@ -1205,7 +1225,7 @@ async function handleRequest(req, res) {
         return sendJSON(res, 400, { success: false, message: 'Nama, kelas, dan kelompok wajib diisi' });
       }
 
-      if (currentUser.role === 'guru' && kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Guru hanya dapat menambahkan siswa ke kelas yang diampu' });
       }
 
@@ -1237,9 +1257,9 @@ async function handleRequest(req, res) {
 
     let addedCount = 0;
     items.forEach(item => {
-      let sKelas = item.kelas ? item.kelas.trim() : (currentUser.role === 'guru' ? currentUser.kelas : 'PAUD A');
-      if (currentUser.role === 'guru') {
-        sKelas = currentUser.kelas; // Paksa kelas guru jika role guru
+      let sKelas = item.kelas ? item.kelas.trim() : (isGuruBiasa(currentUser) ? currentUser.kelas : 'PAUD A');
+      if (isGuruBiasa(currentUser)) {
+        sKelas = currentUser.kelas; // Paksa kelas guru jika role guru biasa
       }
       let sKelompok = item.kelompok ? item.kelompok.trim() : 'Baitu Taqwa';
 
@@ -1273,7 +1293,7 @@ async function handleRequest(req, res) {
 
     db.siswa = db.siswa.filter(s => {
       if (ids.includes(s.id)) {
-        if (currentUser.role === 'guru' && s.kelas !== currentUser.kelas) {
+        if (isGuruBiasa(currentUser) && s.kelas !== currentUser.kelas) {
           return true;
         }
         return false;
@@ -1295,7 +1315,7 @@ async function handleRequest(req, res) {
         return sendJSON(res, 404, { success: false, message: 'Siswa tidak ditemukan' });
       }
 
-      if (currentUser.role === 'guru' && db.siswa[index].kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && db.siswa[index].kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
       }
 
@@ -1303,7 +1323,7 @@ async function handleRequest(req, res) {
         ...db.siswa[index],
         nama: body.nama ? body.nama.trim() : db.siswa[index].nama,
         ttl: body.ttl ? body.ttl.trim() : db.siswa[index].ttl,
-        kelas: currentUser.role === 'guru' ? currentUser.kelas : (body.kelas || db.siswa[index].kelas),
+        kelas: isGuruBiasa(currentUser) ? currentUser.kelas : (body.kelas || db.siswa[index].kelas),
         kelompok: body.kelompok || db.siswa[index].kelompok,
         jk: body.jk || db.siswa[index].jk,
         hp: body.hp !== undefined ? body.hp : db.siswa[index].hp,
@@ -1320,7 +1340,7 @@ async function handleRequest(req, res) {
         return sendJSON(res, 404, { success: false, message: 'Siswa tidak ditemukan' });
       }
 
-      if (currentUser.role === 'guru' && db.siswa[index].kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && db.siswa[index].kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
       }
 
@@ -1336,7 +1356,7 @@ async function handleRequest(req, res) {
   if (pathname === '/api/target-materi') {
     if (method === 'GET') {
       let { kelas, kategori, semester = '1', tahunAjaran = '2026-2027' } = query;
-      if (currentUser.role === 'guru') {
+      if (isGuruBiasa(currentUser)) {
         kelas = currentUser.kelas;
       }
 
@@ -1360,7 +1380,7 @@ async function handleRequest(req, res) {
         return sendJSON(res, 400, { success: false, message: 'Kelas, kategori, dan judul target wajib diisi' });
       }
 
-      if (currentUser.role === 'guru' && kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Guru hanya dapat menginput target di kelas yang diampu' });
       }
 
@@ -1392,8 +1412,8 @@ async function handleRequest(req, res) {
 
     let count = 0;
     items.forEach(it => {
-      let tKelas = it.kelas ? it.kelas.trim() : (currentUser.role === 'guru' ? currentUser.kelas : 'PAUD A');
-      if (currentUser.role === 'guru') tKelas = currentUser.kelas;
+      let tKelas = it.kelas ? it.kelas.trim() : (isGuruBiasa(currentUser) ? currentUser.kelas : 'PAUD A');
+      if (isGuruBiasa(currentUser)) tKelas = currentUser.kelas;
       const tKategori = it.kategori ? it.kategori.trim() : 'Bacaan/Tilawah';
       const tSemester = it.semester || '1';
       const tTahunAjaran = it.tahunAjaran || '2026-2027';
@@ -1427,7 +1447,7 @@ async function handleRequest(req, res) {
 
     db.targetMateri = db.targetMateri.filter(t => {
       if (ids.includes(t.id)) {
-        if (currentUser.role === 'guru' && t.kelas !== currentUser.kelas) return true;
+        if (isGuruBiasa(currentUser) && t.kelas !== currentUser.kelas) return true;
         return false;
       }
       return true;
@@ -1447,13 +1467,13 @@ async function handleRequest(req, res) {
         return sendJSON(res, 404, { success: false, message: 'Target materi tidak ditemukan' });
       }
 
-      if (currentUser.role === 'guru' && db.targetMateri[index].kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && db.targetMateri[index].kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
       }
 
       db.targetMateri[index] = {
         ...db.targetMateri[index],
-        kelas: currentUser.role === 'guru' ? currentUser.kelas : (body.kelas || db.targetMateri[index].kelas),
+        kelas: isGuruBiasa(currentUser) ? currentUser.kelas : (body.kelas || db.targetMateri[index].kelas),
         kategori: body.kategori || db.targetMateri[index].kategori,
         judul: body.judul ? body.judul.trim() : db.targetMateri[index].judul,
         uraian: body.uraian !== undefined ? body.uraian.trim() : db.targetMateri[index].uraian,
@@ -1472,7 +1492,7 @@ async function handleRequest(req, res) {
         return sendJSON(res, 404, { success: false, message: 'Target materi tidak ditemukan' });
       }
 
-      if (currentUser.role === 'guru' && db.targetMateri[index].kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && db.targetMateri[index].kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
       }
 
@@ -1488,7 +1508,7 @@ async function handleRequest(req, res) {
   if (pathname === '/api/penilaian') {
     if (method === 'GET') {
       let { kelas, siswaId, semester = '1', tahunAjaran = '2026-2027' } = query;
-      if (currentUser.role === 'guru') {
+      if (isGuruBiasa(currentUser)) {
         kelas = currentUser.kelas;
       }
 
@@ -1531,7 +1551,7 @@ async function handleRequest(req, res) {
       const s = db.siswa.find(x => x.id === siswaId);
       if (!s) return sendJSON(res, 404, { success: false, message: 'Siswa tidak ditemukan' });
 
-      if (currentUser.role === 'guru' && s.kelas !== currentUser.kelas) {
+      if (isGuruBiasa(currentUser) && s.kelas !== currentUser.kelas) {
         return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
       }
 
@@ -1584,7 +1604,7 @@ async function handleRequest(req, res) {
       if (siswaId) {
         siswaList = siswaList.filter(s => s.id === siswaId);
       }
-      if (currentUser.role === 'guru') {
+      if (isGuruBiasa(currentUser)) {
         siswaList = siswaList.filter(s => normalizeKelas(s.kelas) === normalizeKelas(currentUser.kelas));
       }
 
@@ -1629,7 +1649,7 @@ async function handleRequest(req, res) {
 
         const student = db.siswa.find(s => s.id === siswaId);
         if (!student) return sendJSON(res, 404, { success: false, message: 'Siswa tidak ditemukan' });
-        if (currentUser.role === 'guru' && normalizeKelas(student.kelas) !== normalizeKelas(currentUser.kelas)) {
+        if (isGuruBiasa(currentUser) && normalizeKelas(student.kelas) !== normalizeKelas(currentUser.kelas)) {
           return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
         }
 
@@ -1704,7 +1724,7 @@ async function handleRequest(req, res) {
 
       const s = db.siswa.find(x => x.id === siswaId);
       if (!s) return sendJSON(res, 404, { success: false, message: 'Siswa tidak ditemukan' });
-      if (currentUser.role === 'guru' && normalizeKelas(s.kelas) !== normalizeKelas(currentUser.kelas)) {
+      if (isGuruBiasa(currentUser) && normalizeKelas(s.kelas) !== normalizeKelas(currentUser.kelas)) {
         return sendJSON(res, 403, { success: false, message: 'Akses ditolak' });
       }
 
@@ -1744,7 +1764,7 @@ async function handleRequest(req, res) {
   }
 
   // ==========================================
-  // KELOLA AKUN GURU (KHUSUS ADMIN)
+  // KELOLA AKUN GURU & KOORDINATOR (KHUSUS ADMIN)
   // ==========================================
   if (pathname === '/api/guru') {
     if (currentUser.role !== 'admin') {
@@ -1753,12 +1773,12 @@ async function handleRequest(req, res) {
 
     if (method === 'GET') {
       const teachers = db.users
-        .filter(u => u.role === 'guru')
+        .filter(u => u.role === 'guru' || u.role === 'koordinator')
         .map(u => ({
           id: u.id,
           username: u.username,
           nama: u.nama,
-          role: u.role,
+          role: u.role || 'guru',
           kelas: u.kelas,
           createdAt: u.createdAt
         }));
@@ -1767,10 +1787,12 @@ async function handleRequest(req, res) {
 
     if (method === 'POST') {
       const body = await parseRequestBody(req);
-      const { username, password, nama, kelas } = body;
+      const { username, password, nama, kelas, role = 'guru' } = body;
+      const assignedRole = role === 'koordinator' ? 'koordinator' : 'guru';
+      const assignedKelas = assignedRole === 'koordinator' ? (kelas || null) : kelas;
 
-      if (!username || !password || !nama || !kelas) {
-        return sendJSON(res, 400, { success: false, message: 'Username, password, nama, dan kelas binaan wajib diisi' });
+      if (!username || !password || !nama || (assignedRole === 'guru' && !assignedKelas)) {
+        return sendJSON(res, 400, { success: false, message: 'Username, password, nama, dan kelas binaan (untuk guru kelas) wajib diisi' });
       }
 
       const existing = db.users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
@@ -1779,12 +1801,12 @@ async function handleRequest(req, res) {
       }
 
       const newGuru = {
-        id: generateId('usr_guru'),
+        id: generateId(assignedRole === 'koordinator' ? 'usr_koord' : 'usr_guru'),
         username: username.trim().toLowerCase(),
         password: password.trim(),
         nama: nama.trim(),
-        role: 'guru',
-        kelas,
+        role: assignedRole,
+        kelas: assignedKelas,
         createdAt: new Date().toISOString()
       };
 
@@ -1792,8 +1814,8 @@ async function handleRequest(req, res) {
       if (!await saveDatabaseOrReply(db, res)) return;
       return sendJSON(res, 201, {
         success: true,
-        message: 'Akun guru berhasil dibuat',
-        data: { id: newGuru.id, username: newGuru.username, nama: newGuru.nama, kelas: newGuru.kelas }
+        message: `Akun ${assignedRole === 'koordinator' ? 'koordinator guru' : 'guru'} berhasil dibuat`,
+        data: { id: newGuru.id, username: newGuru.username, nama: newGuru.nama, role: newGuru.role, kelas: newGuru.kelas }
       });
     }
   }
@@ -1807,7 +1829,7 @@ async function handleRequest(req, res) {
 
     if (method === 'PUT') {
       const body = await parseRequestBody(req);
-      const index = db.users.findIndex(u => u.id === id && u.role === 'guru');
+      const index = db.users.findIndex(u => u.id === id && (u.role === 'guru' || u.role === 'koordinator'));
       if (index === -1) {
         return sendJSON(res, 404, { success: false, message: 'Akun guru tidak ditemukan' });
       }
@@ -1818,8 +1840,18 @@ async function handleRequest(req, res) {
       if (body.nama && body.nama.trim()) {
         db.users[index].nama = body.nama.trim();
       }
-      if (body.kelas && MASTER_KELAS.includes(body.kelas)) {
-        db.users[index].kelas = body.kelas;
+      if (body.role && (body.role === 'guru' || body.role === 'koordinator')) {
+        db.users[index].role = body.role;
+        if (body.role === 'koordinator' && !body.kelas) {
+          db.users[index].kelas = null;
+        }
+      }
+      if (body.kelas !== undefined) {
+        if (MASTER_KELAS.includes(body.kelas)) {
+          db.users[index].kelas = body.kelas;
+        } else if (!body.kelas || db.users[index].role === 'koordinator') {
+          db.users[index].kelas = body.kelas || null;
+        }
       }
 
       db.users[index].updatedAt = new Date().toISOString();
@@ -1831,13 +1863,14 @@ async function handleRequest(req, res) {
           id: db.users[index].id,
           username: db.users[index].username,
           nama: db.users[index].nama,
+          role: db.users[index].role,
           kelas: db.users[index].kelas
         }
       });
     }
 
     if (method === 'DELETE') {
-      const index = db.users.findIndex(u => u.id === id && u.role === 'guru');
+      const index = db.users.findIndex(u => u.id === id && (u.role === 'guru' || u.role === 'koordinator'));
       if (index === -1) {
         return sendJSON(res, 404, { success: false, message: 'Akun guru tidak ditemukan' });
       }

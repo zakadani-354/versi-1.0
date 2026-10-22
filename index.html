@@ -64,6 +64,12 @@
       min-height: 100vh;
       min-height: 100dvh;
     }
+
+    /* Halaman login: sembunyikan bottom navigation & seluruh UI aplikasi agar tidak tampil di layar login */
+    body.login-page #bottom-nav,
+    body.login-page #view-app {
+      display: none !important;
+    }
     .font-arabic {
       font-family: 'Amiri', serif;
     }

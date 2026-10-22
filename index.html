@@ -465,7 +465,7 @@
           <button onclick="app.navigate('target')" class="nav-btn px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-600 hover:bg-slate-100 transition" data-target="target">
             <i class="fa-solid fa-bullseye"></i> Target & Raport
           </button>
-          <button id="nav-btn-guru" onclick="app.navigate('guru')" class="nav-btn px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-600 hover:bg-slate-100 transition" data-target="guru">
+          <button id="nav-btn-guru" onclick="app.navigate('guru')" class="nav-btn hidden px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-600 hover:bg-slate-100 transition" data-target="guru">
             <i class="fa-solid fa-chalkboard-user"></i> Guru
           </button>
         </nav>
@@ -1427,7 +1427,7 @@
         <i class="fa-solid fa-bullseye text-lg"></i>
         <span class="text-[10px] font-bold mt-1">Target</span>
       </button>
-      <button id="bottom-nav-guru" onclick="app.navigate('guru')" class="bottom-nav-item flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-brand-600 transition" data-target="guru">
+      <button id="bottom-nav-guru" onclick="app.navigate('guru')" class="bottom-nav-item hidden flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-brand-600 transition" data-target="guru">
         <i class="fa-solid fa-chalkboard-user text-lg"></i>
         <span class="text-[10px] font-bold mt-1">Guru</span>
       </button>
@@ -2175,8 +2175,6 @@
         if (!this.currentUser) return;
         const nameEl = document.getElementById('user-badge-name');
         const roleEl = document.getElementById('user-badge-role');
-        const guruNav = document.getElementById('nav-btn-guru');
-        const guruBottomNav = document.getElementById('bottom-nav-guru');
 
         if (nameEl) nameEl.textContent = this.currentUser.nama || this.currentUser.username;
         if (roleEl) {
@@ -2193,13 +2191,7 @@
         }
 
         // Kunci atau tampilkan menu Guru (Khusus Admin)
-        if (this.currentUser.role === 'admin') {
-          if (guruNav) guruNav.classList.remove('hidden');
-          if (guruBottomNav) guruBottomNav.classList.remove('hidden');
-        } else {
-          if (guruNav) guruNav.classList.add('hidden');
-          if (guruBottomNav) guruBottomNav.classList.add('hidden');
-        }
+        this.applyRoleMenuVisibility();
 
         // Kunci selector kelas HANYA untuk Guru Kelas biasa
         const classElementIds = [
@@ -2232,6 +2224,15 @@
             }
           });
         }
+      },
+
+      // Tampilkan menu "Guru" HANYA untuk akun Admin (Sembunyikan untuk Guru & Koordinator)
+      applyRoleMenuVisibility() {
+        const isAdmin = this.currentUser?.role === 'admin';
+        const guruNav = document.getElementById('nav-btn-guru');
+        const guruBottomNav = document.getElementById('bottom-nav-guru');
+        if (guruNav) guruNav.classList.toggle('hidden', !isAdmin);
+        if (guruBottomNav) guruBottomNav.classList.toggle('hidden', !isAdmin);
       },
 
       // Login Handler
@@ -2305,6 +2306,8 @@
         document.body.classList.add('login-page');
         document.getElementById('view-login').classList.remove('hidden');
         document.getElementById('view-app').classList.add('hidden');
+        // Pastikan menu berbasis role ikut disembunyikan (mis. menu Guru)
+        this.applyRoleMenuVisibility();
       },
 
       showApp(restoreLastTab = false) {
@@ -2319,6 +2322,11 @@
 
       // Navigasi Tab
       navigate(tabId) {
+        // Guard: menu "Guru" hanya untuk Admin. Non-admin dialihkan ke Dashboard.
+        if (tabId === 'guru' && this.currentUser?.role !== 'admin') {
+          tabId = 'dashboard';
+        }
+
         this.currentTab = tabId;
         sessionStorage.setItem('tpq_active_tab', tabId);
 
@@ -2328,22 +2336,26 @@
         if (activePane) activePane.classList.remove('hidden');
 
         // Update styling tombol navigasi Desktop
+        // NOTE: Gunakan classList (bukan className) agar class 'hidden' milik menu
+        // yang dikunci berdasarkan role (mis. menu Guru) tidak ikut terhapus.
         document.querySelectorAll('.nav-btn').forEach(btn => {
-          if (btn.getAttribute('data-target') === tabId) {
-            btn.className = 'nav-btn px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-brand-50 text-brand-700 transition';
-          } else {
-            btn.className = 'nav-btn px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-600 hover:bg-slate-100 transition';
-          }
+          const isActive = btn.getAttribute('data-target') === tabId;
+          btn.classList.toggle('bg-brand-50', isActive);
+          btn.classList.toggle('text-brand-700', isActive);
+          btn.classList.toggle('text-slate-600', !isActive);
+          btn.classList.toggle('hover:bg-slate-100', !isActive);
         });
 
         // Update styling tombol navigasi Mobile Bottom Bar
         document.querySelectorAll('.bottom-nav-item').forEach(btn => {
-          if (btn.getAttribute('data-target') === tabId) {
-            btn.className = 'bottom-nav-item flex flex-col items-center justify-center flex-1 py-1 text-brand-600 transition';
-          } else {
-            btn.className = 'bottom-nav-item flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-brand-600 transition';
-          }
+          const isActive = btn.getAttribute('data-target') === tabId;
+          btn.classList.toggle('text-brand-600', isActive);
+          btn.classList.toggle('text-slate-400', !isActive);
+          btn.classList.toggle('hover:text-brand-600', !isActive);
         });
+
+        // Pastikan status tampil menu sesuai role tetap konsisten (hanya Admin punya menu Guru)
+        this.applyRoleMenuVisibility();
 
         // Load data sesuai tab aktif
         if (tabId === 'dashboard') this.loadDashboard();

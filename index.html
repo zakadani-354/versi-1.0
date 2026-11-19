@@ -1157,7 +1157,7 @@
             </div>
             <div class="hidden sm:flex flex-wrap items-center justify-start gap-2 pt-2 border-t border-slate-100">
               <button onclick="app.saveAllEvaluasi()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-floppy-disk"></i> Simpan Pencapaian
+                <i class="fa-solid fa-floppy-disk"></i> Simpan
               </button>
               <button onclick="app.completeAllEvaluasi()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
                 <i class="fa-solid fa-check-double"></i> Tuntas Semua
@@ -1240,19 +1240,21 @@
             </div>
           </div>
 
-          <div class="sm:hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-wrap items-center gap-2">
-            <button onclick="app.completeAllEvaluasi()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
+          <div class="sm:hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col gap-2">
+            <button onclick="app.completeAllEvaluasi()" class="w-full justify-center px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
               <i class="fa-solid fa-check-double"></i> Tuntas Semua
             </button>
-            <button onclick="app.saveAllEvaluasi()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
-              <i class="fa-solid fa-floppy-disk"></i> Simpan Pencapaian
-            </button>
-            <button onclick="app.shareCapaianVisualization()" class="px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
-              <i class="fa-solid fa-share-nodes"></i> Bagikan
-            </button>
-            <button onclick="app.printCapaianVisualization()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
-              <i class="fa-solid fa-file-pdf"></i> Ekspor Pdf
-            </button>
+            <div class="w-full grid grid-cols-3 gap-1.5">
+              <button onclick="app.saveAllEvaluasi()" class="justify-center px-1 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-[11px] font-bold flex items-center gap-1 shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-floppy-disk"></i> Simpan
+              </button>
+              <button onclick="app.shareCapaianVisualization()" class="justify-center px-1 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl text-[11px] font-bold flex items-center gap-1 transition">
+                <i class="fa-solid fa-share-nodes"></i> Bagikan
+              </button>
+              <button onclick="app.printCapaianVisualization()" class="justify-center px-1 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-[11px] font-bold flex items-center gap-1 transition">
+                <i class="fa-solid fa-file-pdf"></i> Ekspor Pdf
+              </button>
+            </div>
           </div>
 
           <!-- Matriks Penilaian Checklist Target Santri -->

@@ -1236,22 +1236,23 @@
               <div>
                 <h4 class="text-xs font-black uppercase text-slate-700 border-b border-slate-200 pb-2 mb-1">Daftar Materi Tuntas</h4>
                 <div id="eval-target-summary" class="h-56 overflow-y-auto overscroll-contain divide-y divide-slate-100 pr-1"></div>
-                <div class="sm:hidden flex flex-wrap items-center gap-2 pt-3">
-                  <button onclick="app.completeAllEvaluasi()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
-                    <i class="fa-solid fa-check-double"></i> Tuntas Semua
-                  </button>
-                  <button onclick="app.saveAllEvaluasi()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
-                    <i class="fa-solid fa-floppy-disk"></i> Simpan Pencapaian
-                  </button>
-                  <button onclick="app.shareCapaianVisualization()" class="px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
-                    <i class="fa-solid fa-share-nodes"></i> Bagikan
-                  </button>
-                  <button onclick="app.printCapaianVisualization()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
-                    <i class="fa-solid fa-file-pdf"></i> Ekspor Pdf
-                  </button>
-                </div>
               </div>
             </div>
+          </div>
+
+          <div class="sm:hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-wrap items-center gap-2">
+            <button onclick="app.completeAllEvaluasi()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
+              <i class="fa-solid fa-check-double"></i> Tuntas Semua
+            </button>
+            <button onclick="app.saveAllEvaluasi()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
+              <i class="fa-solid fa-floppy-disk"></i> Simpan Pencapaian
+            </button>
+            <button onclick="app.shareCapaianVisualization()" class="px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-share-nodes"></i> Bagikan
+            </button>
+            <button onclick="app.printCapaianVisualization()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-file-pdf"></i> Ekspor Pdf
+            </button>
           </div>
 
           <!-- Matriks Penilaian Checklist Target Santri -->

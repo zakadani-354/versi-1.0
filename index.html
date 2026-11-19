@@ -1028,10 +1028,10 @@
       <!-- ======================================================== -->
       <!-- TAB 5: TARGET MATERI & PENILAIAN                         -->
       <!-- ======================================================== -->
-      <section id="tab-target" class="tab-pane hidden space-y-2">
+      <section id="tab-target" class="tab-pane hidden space-y-4">
         
-        <!-- Header & Navigasi Sub-Tab Target vs Penilaian -->
-        <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+        <!-- Judul Halaman Target -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200">
           <div>
             <h2 class="text-lg sm:text-xl font-bold text-slate-800 flex items-center gap-2">
               <i class="fa-solid fa-award text-brand-600"></i>
@@ -1039,31 +1039,46 @@
             </h2>
             <p class="text-xs text-slate-500">7 Kategori materi pembelajaran & pencapaian santri</p>
           </div>
+        </div>
 
-          <div class="flex flex-wrap items-center justify-end gap-2">
+        <!-- Menu Utama Target -->
+        <nav class="grid grid-cols-2 gap-2 no-print" aria-label="Menu Target">
+          <button id="target-section-curriculum" type="button" onclick="app.setTargetSection('curriculum')" aria-current="page" class="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs sm:text-sm font-bold bg-brand-600 text-white shadow-sm transition">
+            <i class="fa-solid fa-list-check"></i>
+            <span>Target Kurikulum</span>
+          </button>
+          <button id="target-section-rapor" type="button" onclick="app.setTargetSection('rapor')" class="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
+            <i class="fa-solid fa-file-lines"></i>
+            <span>Penilaian Raport</span>
+          </button>
+        </nav>
+
+        <!-- Semester dan Tahun Ajaran -->
+        <div class="flex flex-wrap items-center gap-2 no-print">
+          <label for="academic-semester" class="sr-only">Semester</label>
+          <label for="academic-year" class="sr-only">Tahun Ajaran</label>
+          <div class="flex flex-wrap items-center gap-2 rounded-2xl bg-white p-3 border border-slate-200 shadow-sm">
             <select id="academic-semester" onchange="app.loadAcademicView()" class="text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
               <option value="1">Semester Ganjil (1)</option>
               <option value="2">Semester Genap (2)</option>
             </select>
             <input id="academic-year" onchange="app.loadAcademicView()" value="2026-2027" pattern="[0-9]{4}-[0-9]{4}" placeholder="Tahun Ajaran" class="w-28 text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
           </div>
+        </div>
 
-          <!-- Switcher Mode -->
-          <div class="flex flex-wrap gap-2">
+        <div id="target-curriculum-section" class="space-y-4">
+          <!-- Pilihan Tampilan Target Kurikulum -->
+          <nav id="target-curriculum-subnav" class="flex flex-wrap gap-2 no-print" aria-label="Tampilan Target Kurikulum">
             <button id="target-subnav-list" onclick="app.setTargetMode('list')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition">
               <i class="fa-solid fa-list-check mr-1"></i> Daftar Target Materi
             </button>
             <button id="target-subnav-capaian" onclick="app.setTargetMode('capaian')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
               <i class="fa-solid fa-pen-ruler mr-1"></i> Pencapaian Materi
             </button>
-            <button id="target-subnav-rapor" onclick="app.setTargetMode('rapor')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition">
-              <i class="fa-solid fa-file-lines mr-1"></i> Nilai Rapor
-            </button>
-          </div>
-        </div>
+          </nav>
 
-        <!-- 5A. SUB-TAB: DAFTAR TARGET MATERI -->
-        <div id="target-view-list" class="space-y-4">
+          <div id="target-view-list" class="space-y-4">
+          <!-- 5A. SUB-TAB: DAFTAR TARGET MATERI -->
           <!-- Toolbar Filter & Tambah Target -->
           <div class="flex flex-wrap items-center justify-between gap-2 no-print">
             <div class="flex flex-wrap items-center gap-2">
@@ -1244,6 +1259,7 @@
             </div>
           </div>
           </div>
+        </div>
         </div>
 
         <!-- 5C. SUB-TAB: NILAI RAPOR 7 SUBJEK -->
@@ -2053,6 +2069,9 @@
         ]
       },
       currentTab: 'dashboard',
+      currentTargetSection: 'curriculum',
+      currentCurriculumMode: 'list',
+      currentTargetMode: 'list',
       dashboardData: null,
       jurnalList: [],
       presensiInputData: [],
@@ -2453,7 +2472,7 @@
         else if (tabId === 'jurnal') this.loadJurnal();
         else if (tabId === 'presensi') this.loadPresensiInput();
         else if (tabId === 'siswa') this.loadSiswa();
-        else if (tabId === 'target') this.loadTargetMateri();
+        else if (tabId === 'target') this.setTargetSection(this.currentTargetSection);
         else if (tabId === 'guru') this.loadGuru();
 
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2470,10 +2489,12 @@
       },
 
       loadAcademicView() {
-        const mode = this.currentTargetMode || 'list';
-        if (mode === 'capaian') this.loadEvaluasiMode();
-        else if (mode === 'rapor') this.loadNilaiRaporMode();
-        else this.loadTargetMateri();
+        if (this.currentTargetSection === 'rapor') {
+          this.currentTargetMode = 'rapor';
+          this.loadNilaiRaporMode();
+        } else {
+          this.setTargetMode(this.currentCurriculumMode || 'list');
+        }
       },
 
       // ==========================================
@@ -3676,33 +3697,63 @@
       // ==========================================
       // 5. TARGET MATERI & PENILAIAN LOGIC
       // ==========================================
+      setTargetSection(section) {
+        const isRapor = section === 'rapor';
+        this.currentTargetSection = isRapor ? 'rapor' : 'curriculum';
+
+        const curriculumButton = document.getElementById('target-section-curriculum');
+        const raporButton = document.getElementById('target-section-rapor');
+        [curriculumButton, raporButton].forEach((button, index) => {
+          const isActive = index === (isRapor ? 1 : 0);
+          button.classList.toggle('bg-brand-600', isActive);
+          button.classList.toggle('text-white', isActive);
+          button.classList.toggle('shadow-sm', isActive);
+          button.classList.toggle('bg-slate-100', !isActive);
+          button.classList.toggle('text-slate-600', !isActive);
+          button.classList.toggle('hover:bg-slate-200', !isActive);
+          if (isActive) button.setAttribute('aria-current', 'page');
+          else button.removeAttribute('aria-current');
+        });
+
+        document.getElementById('target-curriculum-section').classList.toggle('hidden', isRapor);
+        document.getElementById('target-view-rapor').classList.toggle('hidden', !isRapor);
+
+        if (isRapor) {
+          this.currentTargetMode = 'rapor';
+          this.loadNilaiRaporMode();
+        } else {
+          this.setTargetMode(this.currentCurriculumMode || 'list');
+        }
+      },
+
       setTargetMode(mode) {
+        if (!['list', 'capaian'].includes(mode)) mode = 'list';
         const btnList = document.getElementById('target-subnav-list');
         const btnCapaian = document.getElementById('target-subnav-capaian');
-        const btnRapor = document.getElementById('target-subnav-rapor');
         const viewList = document.getElementById('target-view-list');
         const viewCapaian = document.getElementById('target-view-capaian');
-        const viewRapor = document.getElementById('target-view-rapor');
+        this.currentTargetSection = 'curriculum';
+        this.currentCurriculumMode = mode;
         this.currentTargetMode = mode;
 
-        [btnList, btnCapaian, btnRapor].forEach(btn => {
-          if (btn) btn.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
+        [btnList, btnCapaian].forEach((button, index) => {
+          const isActive = index === (mode === 'list' ? 0 : 1);
+          button.classList.toggle('bg-brand-600', isActive);
+          button.classList.toggle('text-white', isActive);
+          button.classList.toggle('shadow-sm', isActive);
+          button.classList.toggle('bg-slate-100', !isActive);
+          button.classList.toggle('text-slate-600', !isActive);
+          button.classList.toggle('hover:bg-slate-200', !isActive);
+          if (isActive) button.setAttribute('aria-current', 'page');
+          else button.removeAttribute('aria-current');
         });
-        [viewList, viewCapaian, viewRapor].forEach(view => view?.classList.add('hidden'));
+        viewList.classList.toggle('hidden', mode !== 'list');
+        viewCapaian.classList.toggle('hidden', mode !== 'capaian');
 
         if (mode === 'list') {
-          btnList.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition';
-          viewList.classList.remove('hidden');
           this.loadTargetMateri();
-        } else if (mode === 'capaian') {
-          btnCapaian.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition';
-          viewCapaian.classList.remove('hidden');
-          viewCapaian.scrollIntoView({behavior:"smooth",block:"start"});
-          this.loadEvaluasiMode();
         } else {
-          btnRapor.className = 'px-3.5 py-2 rounded-xl text-xs font-bold bg-brand-600 text-white shadow-sm transition';
-          viewRapor.classList.remove('hidden');
-          this.loadNilaiRaporMode();
+          this.loadEvaluasiMode();
         }
       },
 

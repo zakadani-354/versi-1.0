@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TPQ Baitussalam Huda Mansurin - Sistem Pengelolaan</title>
   
   <!-- Tailwind CSS CDN -->
@@ -368,6 +368,72 @@
       background: #f3f4f6;
       font-weight: 700;
     }
+    @media (max-width: 767px) {
+      html {
+        scroll-behavior: smooth;
+      }
+      body:not(.login-page) {
+        min-width: 320px;
+        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom)) !important;
+      }
+      #view-app {
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+      #view-app > header {
+        padding-top: env(safe-area-inset-top);
+      }
+      #view-app > header > div {
+        min-width: 0;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+      }
+      #view-app > header > div > div:first-child {
+        min-width: 0;
+        gap: 0.5rem;
+      }
+      #view-app > header > div > div:first-child > div {
+        min-width: 0;
+      }
+      #view-app > header > div > div:first-child span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      #view-app > main {
+        padding: 0.75rem;
+      }
+      .tab-pane,
+      .tab-pane > * {
+        min-width: 0;
+      }
+      #bottom-nav {
+        justify-content: flex-start;
+        gap: 0.25rem;
+        height: calc(4rem + env(safe-area-inset-bottom));
+        padding: 0 0.5rem env(safe-area-inset-bottom);
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+      }
+      #bottom-nav::-webkit-scrollbar {
+        display: none;
+      }
+      #bottom-nav .bottom-nav-item {
+        flex: 0 0 4rem;
+        min-height: 3rem;
+        border-radius: 0.75rem;
+        scroll-snap-align: center;
+      }
+      #bottom-nav .bottom-nav-item[aria-current="page"] {
+        background: #ecfdf5;
+      }
+      #bottom-nav .bottom-nav-item span {
+        white-space: nowrap;
+      }
+    }
   </style>
 </head>
 <body class="login-page bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col selection:bg-brand-500 selection:text-white pb-20 md:pb-6">
@@ -449,7 +515,7 @@
         </div>
 
         <!-- Menu Desktop (Tablet / Laptop / Komputer) -->
-        <nav class="hidden md:flex items-center gap-1">
+        <nav class="hidden md:flex items-center gap-1" aria-label="Navigasi utama">
           <button onclick="app.navigate('dashboard')" class="nav-btn px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 text-slate-600 hover:bg-slate-100 transition" data-target="dashboard">
             <i class="fa-solid fa-chart-pie"></i> Dashboard
           </button>
@@ -1406,7 +1472,7 @@
     </main>
 
     <!-- Bottom Navigation Bar (Khusus Perangkat Smartphone / Layar HP) -->
-    <nav id="bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around h-16 z-50 px-1 shadow-lg no-print">
+    <nav id="bottom-nav" class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around h-16 z-50 px-1 shadow-lg no-print" aria-label="Navigasi utama">
       <button onclick="app.navigate('dashboard')" class="bottom-nav-item flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-brand-600 transition" data-target="dashboard">
         <i class="fa-solid fa-chart-pie text-lg"></i>
         <span class="text-[10px] font-bold mt-1">Dashboard</span>
@@ -2292,6 +2358,7 @@
         if (this.token) {
           this.api('/api/logout', 'POST').catch(() => {});
         }
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
         this.token = '';
         this.currentUser = null;
         localStorage.removeItem('tpq_token');
@@ -2314,21 +2381,32 @@
         document.body.classList.remove('login-page');
         document.getElementById('view-login').classList.add('hidden');
         document.getElementById('view-app').classList.remove('hidden');
+        const hashTab = window.location.hash.match(/^#\/([a-z-]+)$/)?.[1];
         const savedTab = restoreLastTab ? sessionStorage.getItem('tpq_active_tab') : null;
-        const canRestoreTab = savedTab && document.getElementById(`tab-${savedTab}`) &&
-          (savedTab !== 'guru' || this.currentUser?.role === 'admin');
-        this.navigate(canRestoreTab ? savedTab : 'dashboard');
+        const requestedTab = hashTab || savedTab;
+        const canRestoreTab = requestedTab && document.getElementById(`tab-${requestedTab}`) &&
+          (requestedTab !== 'guru' || this.currentUser?.role === 'admin');
+        this.navigate(canRestoreTab ? requestedTab : 'dashboard', { history: 'replace' });
       },
 
       // Navigasi Tab
-      navigate(tabId) {
+      navigate(tabId, { history = 'push' } = {}) {
         // Guard: menu "Guru" hanya untuk Admin. Non-admin dialihkan ke Dashboard.
         if (tabId === 'guru' && this.currentUser?.role !== 'admin') {
+          tabId = 'dashboard';
+        }
+        if (!document.getElementById(`tab-${tabId}`)) {
           tabId = 'dashboard';
         }
 
         this.currentTab = tabId;
         sessionStorage.setItem('tpq_active_tab', tabId);
+        const route = `${window.location.pathname}${window.location.search}#/${tabId}`;
+        if (history === 'replace') {
+          window.history.replaceState({ tab: tabId }, '', route);
+        } else if (history === 'push' && window.location.hash !== `#/${tabId}`) {
+          window.history.pushState({ tab: tabId }, '', route);
+        }
 
         // Ubah tampilan Pane
         document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
@@ -2340,6 +2418,8 @@
         // yang dikunci berdasarkan role (mis. menu Guru) tidak ikut terhapus.
         document.querySelectorAll('.nav-btn').forEach(btn => {
           const isActive = btn.getAttribute('data-target') === tabId;
+          if (isActive) btn.setAttribute('aria-current', 'page');
+          else btn.removeAttribute('aria-current');
           btn.classList.toggle('bg-brand-50', isActive);
           btn.classList.toggle('text-brand-700', isActive);
           btn.classList.toggle('text-slate-600', !isActive);
@@ -2349,10 +2429,22 @@
         // Update styling tombol navigasi Mobile Bottom Bar
         document.querySelectorAll('.bottom-nav-item').forEach(btn => {
           const isActive = btn.getAttribute('data-target') === tabId;
+          if (isActive) btn.setAttribute('aria-current', 'page');
+          else btn.removeAttribute('aria-current');
           btn.classList.toggle('text-brand-600', isActive);
           btn.classList.toggle('text-slate-400', !isActive);
           btn.classList.toggle('hover:text-brand-600', !isActive);
         });
+        if (window.matchMedia('(max-width: 767px)').matches) {
+          const bottomNav = document.getElementById('bottom-nav');
+          const activeNavItem = bottomNav.querySelector(`[data-target="${tabId}"]`);
+          if (activeNavItem) {
+            bottomNav.scrollTo({
+              left: activeNavItem.offsetLeft - bottomNav.offsetLeft,
+              behavior: 'smooth'
+            });
+          }
+        }
 
         // Pastikan status tampil menu sesuai role tetap konsisten (hanya Admin punya menu Guru)
         this.applyRoleMenuVisibility();
@@ -4820,6 +4912,11 @@
     // Jalankan inisialisasi aplikasi saat DOM siap
     document.addEventListener('DOMContentLoaded', () => {
       app.init();
+    });
+    window.addEventListener('popstate', () => {
+      if (!app.currentUser || document.getElementById('view-app').classList.contains('hidden')) return;
+      const tabId = window.location.hash.match(/^#\/([a-z-]+)$/)?.[1] || 'dashboard';
+      app.navigate(tabId, { history: 'none' });
     });
   </script>
 </body>

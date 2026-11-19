@@ -1151,13 +1151,13 @@
                   <!-- Diisi otomatis dari list siswa kelas aktif -->
                 </select>
               </div>
-              <div class="text-xs text-slate-500 font-medium">
+              <div class="hidden sm:block text-xs text-slate-500 font-medium">
                 <span id="eval-visualization-period" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs">Semester Ganjil | Tahun Ajaran 2026-2027</span>
               </div>
             </div>
-            <div class="flex flex-wrap items-center justify-start gap-2 pt-2 border-t border-slate-100">
+            <div class="hidden sm:flex flex-wrap items-center justify-start gap-2 pt-2 border-t border-slate-100">
               <button onclick="app.saveAllEvaluasi()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-floppy-disk"></i> Simpan Semua Pencapaian
+                <i class="fa-solid fa-floppy-disk"></i> Simpan Pencapaian
               </button>
               <button onclick="app.completeAllEvaluasi()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
                 <i class="fa-solid fa-check-double"></i> Tuntas Semua
@@ -1166,7 +1166,7 @@
                 <i class="fa-solid fa-share-nodes"></i> Bagikan
               </button>
               <button onclick="app.printCapaianVisualization()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
-                <i class="fa-solid fa-file-pdf"></i> Simpan sebagai PDF
+                <i class="fa-solid fa-file-pdf"></i> Ekspor Pdf
               </button>
             </div>
           </div>
@@ -1177,6 +1177,7 @@
             <div id="eval-visualization-screen" class="mb-3">
               <div id="eval-student-card" class="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-100/60 p-4 text-emerald-950 shadow-sm">
                 <div class="min-w-0">
+                  <span id="eval-visualization-period-mobile" class="sm:hidden inline-flex items-center px-3 py-1.5 mb-2 rounded-lg bg-white/70 text-slate-700 font-bold text-xs">Semester Ganjil | Tahun Ajaran 2026-2027</span>
                   <h3 id="eval-student-name" class="text-base font-bold text-emerald-950 truncate">Nama Santri</h3>
                   <p id="eval-student-meta" class="text-xs font-semibold text-emerald-800 mt-0.5">KELAS : PAUD B | KELOMPOK : Baitu Taqwa | TTL : -</p>
                   <div class="mt-3 pt-3 border-t border-emerald-200/80 flex items-baseline gap-2 flex-wrap">
@@ -1235,6 +1236,20 @@
               <div>
                 <h4 class="text-xs font-black uppercase text-slate-700 border-b border-slate-200 pb-2 mb-1">Daftar Materi Tuntas</h4>
                 <div id="eval-target-summary" class="h-56 overflow-y-auto overscroll-contain divide-y divide-slate-100 pr-1"></div>
+                <div class="sm:hidden flex flex-wrap items-center gap-2 pt-3">
+                  <button onclick="app.completeAllEvaluasi()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
+                    <i class="fa-solid fa-check-double"></i> Tuntas Semua
+                  </button>
+                  <button onclick="app.saveAllEvaluasi()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition active:scale-95">
+                    <i class="fa-solid fa-floppy-disk"></i> Simpan Pencapaian
+                  </button>
+                  <button onclick="app.shareCapaianVisualization()" class="px-3 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-share-nodes"></i> Bagikan
+                  </button>
+                  <button onclick="app.printCapaianVisualization()" class="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-file-pdf"></i> Ekspor Pdf
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -4158,7 +4173,9 @@
         const complete = targetData.filter(item => item.status === 'Tuntas').length;
         const period = this.getAcademicParams();
         const semesterName = period.semester === '2' ? 'Semester Genap' : 'Semester Ganjil';
-        document.getElementById('eval-visualization-period').textContent = `${semesterName} | Tahun Ajaran ${period.tahunAjaran}`;
+        const periodLabel = `${semesterName} | Tahun Ajaran ${period.tahunAjaran}`;
+        document.getElementById('eval-visualization-period').textContent = periodLabel;
+        document.getElementById('eval-visualization-period-mobile').textContent = periodLabel;
 
         const monthName = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
         const studentName = document.getElementById('eval-student-name')?.textContent || 'Nama Santri';

@@ -1151,6 +1151,8 @@
                 <select id="eval-select-siswa" onchange="app.loadEvaluasiSiswa()" class="max-w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
                   <!-- Diisi otomatis dari list siswa kelas aktif -->
                 </select>
+                <label for="eval-filter-bulan" class="text-xs font-bold text-slate-600">Bulan Pencapaian:</label>
+                <input type="month" id="eval-filter-bulan" aria-label="Bulan pencapaian materi" onchange="app.loadEvaluasiMode()" class="max-w-full text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
               </div>
               <div class="hidden sm:block text-xs text-slate-500 font-medium">
                 <span id="eval-visualization-period" class="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-xs">Semester Ganjil | Tahun Ajaran 2026-2027</span>
@@ -2107,6 +2109,7 @@
       evaluasiDataCache: {},
       currentEvaluationData: null,
       currentEvaluationDataKey: '',
+      evaluationStudentLoadVersion: 0,
       raporKategoriList: [],
       guruList: [],
       parsedImportSiswa: [],
@@ -2505,6 +2508,24 @@
           throw new Error('Tahun ajaran harus berformat 2026-2027');
         }
         return { semester, tahunAjaran };
+      },
+
+      getEvaluationMonth() {
+        const monthInput = document.getElementById('eval-filter-bulan');
+        const { semester, tahunAjaran } = this.getAcademicParams();
+        const [startYear, endYear] = tahunAjaran.split('-').map(Number);
+        const minMonth = semester === '2' ? `${endYear}-01` : `${startYear}-07`;
+        const maxMonth = semester === '2' ? `${endYear}-06` : `${startYear}-12`;
+        if (!monthInput) return minMonth;
+
+        monthInput.min = minMonth;
+        monthInput.max = maxMonth;
+        if (!monthInput.value || monthInput.value < minMonth || monthInput.value > maxMonth) {
+          const today = new Date();
+          const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+          monthInput.value = currentMonth >= minMonth && currentMonth <= maxMonth ? currentMonth : minMonth;
+        }
+        return monthInput.value;
       },
 
       loadAcademicView() {
@@ -4030,9 +4051,11 @@
         classFilter.classList.toggle('hidden', isGuru);
         const kelas = isGuru ? this.currentUser.kelas : classFilter.value;
         const { semester, tahunAjaran } = this.getAcademicParams();
-        const cacheKey = JSON.stringify({ kelas, semester, tahunAjaran });
+        const bulan = this.getEvaluationMonth();
+        const cacheKey = JSON.stringify({ kelas, semester, tahunAjaran, bulan });
         const siswaSelect = document.getElementById('eval-select-siswa');
         const selectedStudentId = siswaSelect.value;
+        this.evaluationStudentLoadVersion++;
         this.currentEvaluationDataKey = cacheKey;
         const cached = forceRefresh ? null : this.evaluasiDataCache[cacheKey];
 
@@ -4040,12 +4063,13 @@
           this.renderEvaluasiStudentOptions(cached, selectedStudentId);
         } else {
           this.currentEvaluationData = null;
+          this.currentEvaluationTargets = [];
           siswaSelect.innerHTML = '<option value="">Memuat daftar santri...</option>';
           document.getElementById('eval-table-body').innerHTML = '<tr><td colspan="5" class="text-center p-6 text-slate-400"><i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Memuat pencapaian materi...</td></tr>';
         }
 
         try {
-          const res = await this.api(`/api/penilaian?kelas=${encodeURIComponent(kelas)}&semester=${semester}&tahunAjaran=${encodeURIComponent(tahunAjaran)}`);
+          const res = await this.api(`/api/penilaian?kelas=${encodeURIComponent(kelas)}&semester=${semester}&tahunAjaran=${encodeURIComponent(tahunAjaran)}&bulan=${encodeURIComponent(bulan)}`);
           if (this.currentEvaluationDataKey !== cacheKey || !res.success) return;
           this.evaluasiDataCache[cacheKey] = res;
           this.renderEvaluasiStudentOptions(res, selectedStudentId);
@@ -4081,6 +4105,8 @@
       async loadEvaluasiSiswa() {
         const siswaId = document.getElementById('eval-select-siswa').value;
         if (!siswaId) return;
+        const loadVersion = ++this.evaluationStudentLoadVersion;
+        const dataKey = this.currentEvaluationDataKey;
 
         try {
           const studentData = this.currentEvaluationData;
@@ -4091,8 +4117,8 @@
                 siswaList: [student],
                 targetList: (studentData.targetList || []).filter(target => target.kelas === student.kelas)
               }
-            : await this.api(`/api/penilaian?siswaId=${encodeURIComponent(siswaId)}&semester=${this.getAcademicParams().semester}&tahunAjaran=${encodeURIComponent(this.getAcademicParams().tahunAjaran)}`);
-          if (document.getElementById('eval-select-siswa').value !== siswaId) return;
+            : await this.api(`/api/penilaian?siswaId=${encodeURIComponent(siswaId)}&semester=${this.getAcademicParams().semester}&tahunAjaran=${encodeURIComponent(this.getAcademicParams().tahunAjaran)}&bulan=${encodeURIComponent(this.getEvaluationMonth())}`);
+          if (loadVersion !== this.evaluationStudentLoadVersion || this.currentEvaluationDataKey !== dataKey || document.getElementById('eval-select-siswa').value !== siswaId) return;
           if (res.success) {
             const siswa = res.siswaList && res.siswaList[0];
             if (siswa) {
@@ -4179,12 +4205,13 @@
         const total = targets.length;
         const complete = targetData.filter(item => item.status === 'Tuntas').length;
         const period = this.getAcademicParams();
+        const selectedMonth = this.getEvaluationMonth();
+        const monthName = new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
         const semesterName = period.semester === '2' ? 'Semester Genap' : 'Semester Ganjil';
-        const periodLabel = `${semesterName} | Tahun Ajaran ${period.tahunAjaran}`;
+        const periodLabel = `${monthName} | ${semesterName} | Tahun Ajaran ${period.tahunAjaran}`;
         document.getElementById('eval-visualization-period').textContent = periodLabel;
         document.getElementById('eval-visualization-period-mobile').textContent = periodLabel;
 
-        const monthName = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
         const studentName = document.getElementById('eval-student-name')?.textContent || 'Nama Santri';
         const percentage = total ? Math.round((complete / total) * 100) : 0;
         const semesterLabel = `${period.semester} (${period.semester === '2' ? 'GENAP' : 'GANJIL'})`;
@@ -4429,13 +4456,14 @@
         }
         try {
           const academic = this.getAcademicParams();
+          const bulan = this.getEvaluationMonth();
           const items = targets.map(target => ({
             targetId: target.id,
             status: document.getElementById(`eval-status-${target.id}`).value,
             nilai: 0,
             catatan: document.getElementById(`eval-catatan-${target.id}`).value
           }));
-          const saved = await this.api('/api/penilaian', 'POST', { siswaId, items, ...academic });
+          const saved = await this.api('/api/penilaian', 'POST', { siswaId, items, ...academic, bulan });
           if (this.currentEvaluationData) {
             const targetIds = new Set(items.map(item => item.targetId));
             this.currentEvaluationData.penilaian = (this.currentEvaluationData.penilaian || [])

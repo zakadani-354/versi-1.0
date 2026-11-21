@@ -355,6 +355,9 @@ function normalizeDatabase(data) {
   data.penilaian.forEach(record => {
     if (!record.semester) record.semester = '1';
     if (!record.tahunAjaran) record.tahunAjaran = '2026-2027';
+    if (!record.bulan && typeof record.tanggal === 'string' && /^\d{4}-(0[1-9]|1[0-2])-\d{2}$/.test(record.tanggal)) {
+      record.bulan = record.tanggal.slice(0, 7);
+    }
   });
   data.nilaiRapor.forEach(record => {
     if (!record.semester) record.semester = '1';
@@ -1507,7 +1510,7 @@ async function handleRequest(req, res) {
   // ==========================================
   if (pathname === '/api/penilaian') {
     if (method === 'GET') {
-      let { kelas, siswaId, semester = '1', tahunAjaran = '2026-2027' } = query;
+      let { kelas, siswaId, semester = '1', tahunAjaran = '2026-2027', bulan } = query;
       if (isGuruBiasa(currentUser)) {
         kelas = currentUser.kelas;
       }
@@ -1527,14 +1530,32 @@ async function handleRequest(req, res) {
         t.semester === semester &&
         t.tahunAjaran === tahunAjaran
       );
+      let penilaian = db.penilaian.filter(record =>
+        record.semester === semester && record.tahunAjaran === tahunAjaran
+      );
+      if (bulan) {
+        penilaian = penilaian.filter(record => record.bulan === bulan);
+      } else {
+        const latestByTarget = new Map();
+        penilaian.forEach(record => {
+          const key = `${record.siswaId}|${record.targetId}`;
+          const current = latestByTarget.get(key);
+          const recordMonth = record.bulan || record.tanggal?.slice(0, 7) || '';
+          const currentMonth = current?.bulan || current?.tanggal?.slice(0, 7) || '';
+          const recordUpdated = record.updatedAt || record.tanggal || '';
+          const currentUpdated = current?.updatedAt || current?.tanggal || '';
+          if (!current || recordMonth > currentMonth || (recordMonth === currentMonth && recordUpdated > currentUpdated)) {
+            latestByTarget.set(key, record);
+          }
+        });
+        penilaian = [...latestByTarget.values()];
+      }
 
       return sendJSON(res, 200, {
         success: true,
         siswaList,
         targetList,
-        penilaian: db.penilaian.filter(p =>
-          p.semester === semester && p.tahunAjaran === tahunAjaran
-        )
+        penilaian
       });
     }
 
@@ -1542,8 +1563,12 @@ async function handleRequest(req, res) {
     if (method === 'POST') {
       const body = await parseRequestBody(req);
       const { siswaId, semester = '1', tahunAjaran = '2026-2027' } = body;
+      const bulan = body.bulan || new Date().toISOString().slice(0, 7);
       const items = Array.isArray(body.items) ? body.items : [body];
 
+      if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(bulan)) {
+        return sendJSON(res, 400, { success: false, message: 'Bulan pencapaian harus berformat YYYY-MM' });
+      }
       if (!siswaId || items.length === 0 || items.some(item => !item.targetId || !item.status)) {
         return sendJSON(res, 400, { success: false, message: 'Siswa, target materi, dan status wajib diisi' });
       }
@@ -1560,7 +1585,8 @@ async function handleRequest(req, res) {
           p.siswaId === siswaId &&
           p.targetId === item.targetId &&
           p.semester === semester &&
-          p.tahunAjaran === tahunAjaran
+          p.tahunAjaran === tahunAjaran &&
+          p.bulan === bulan
         );
         const record = {
           id: existingIdx >= 0 ? db.penilaian[existingIdx].id : generateId('pen'),
@@ -1571,6 +1597,7 @@ async function handleRequest(req, res) {
           catatan: item.catatan || '',
           semester,
           tahunAjaran,
+          bulan,
           tanggal: new Date().toISOString().substring(0, 10),
           updatedAt: new Date().toISOString()
         };

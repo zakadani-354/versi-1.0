@@ -844,7 +844,7 @@
           <div class="flex flex-wrap items-center gap-2">
             <input type="date" id="presensi-input-tanggal" onchange="app.loadPresensiInput()" class="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
 
-            <select id="presensi-filter-kelas" onchange="app.handlePresensiFilterChange()" class="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
+            <select id="presensi-filter-kelas" aria-label="Filter kelas presensi" onchange="app.handlePresensiFilterChange()" class="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-brand-500">
               <!-- Diisi otomatis dari Master Kelas -->
             </select>
 
@@ -904,10 +904,11 @@
           <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden card-print">
             <!-- Filter Bar Riwayat -->
             <div class="p-3 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 no-print">
-              <div class="w-full sm:w-64">
+              <div class="w-full sm:w-auto flex flex-col sm:flex-row gap-2">
                 <select id="presensi-history-name-filter" aria-label="Filter nama santri" onchange="app.filterPresensiHistory()" class="w-full px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
                   <option value="">Semua santri</option>
                 </select>
+                <input type="date" id="presensi-history-date-filter" aria-label="Filter tanggal riwayat presensi" onchange="app.loadPresensiHistory()" class="w-full sm:w-auto px-3 py-2 text-xs font-semibold bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition">
               </div>
               <div class="flex items-center gap-2 self-end sm:self-auto">
                 <span id="presensi-history-count" class="text-xs text-slate-400 font-semibold shrink-0"></span>
@@ -3194,6 +3195,7 @@
       async loadPresensiHistory() {
         const kelasEl = document.getElementById('presensi-filter-kelas');
         const kelompokEl = document.getElementById('presensi-filter-kelompok');
+        const tanggal = document.getElementById('presensi-history-date-filter')?.value || '';
 
         if (kelasEl && !kelasEl.value) {
           kelasEl.value = 'ALL';
@@ -3206,7 +3208,8 @@
         const kelompok = kelompokEl ? (kelompokEl.value || 'ALL') : 'ALL';
 
         try {
-          const res = await this.api(`/api/presensi?kelas=${encodeURIComponent(kelas)}&kelompok=${encodeURIComponent(kelompok)}`);
+          const dateFilter = tanggal ? `&tanggal=${encodeURIComponent(tanggal)}` : '';
+          const res = await this.api(`/api/presensi?kelas=${encodeURIComponent(kelas)}&kelompok=${encodeURIComponent(kelompok)}${dateFilter}`);
           if (res.success) {
             this.presensiHistoryList = res.data || [];
             const nameFilter = document.getElementById('presensi-history-name-filter');
@@ -3362,10 +3365,10 @@
           };
 
           const dateHeaders = dates.map(date => new Date(`${date}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }));
-          const headers = ['Kelompok', 'Nama', ...dateHeaders, 'Rata-rata H (%)', 'Rata-rata I (%)', 'Rata-rata S (%)', 'Rata-rata A (%)'];
+          const headers = ['Kelompok', 'Kelas', 'Nama', ...dateHeaders, 'Rata-rata H (%)', 'Rata-rata I (%)', 'Rata-rata S (%)', 'Rata-rata A (%)'];
           const rows = [[`BULAN: ${new Date(`${monthValue}-01T00:00:00`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`], headers];
           const summaryRows = [];
-          const averageColumnStart = 2 + dates.length;
+          const averageColumnStart = 3 + dates.length;
 
           [...groups.entries()].sort(([first], [second]) => first.localeCompare(second, 'id')).forEach(([groupName, groupStudents]) => {
             groupStudents.sort((first, second) => first.nama.localeCompare(second.nama, 'id'));
@@ -3377,22 +3380,23 @@
                 if (status) statusTotals[status] += 1;
                 return status;
               });
-              rows.push([groupName, student.nama, ...values, '', '', '', '']);
+              rows.push([groupName, student.kelas || '', student.nama, ...values, '', '', '', '']);
             });
 
             const denominator = Object.values(statusTotals).reduce((sum, count) => sum + count, 0);
             const averages = ['H', 'I', 'S', 'A'].map(status => denominator ? statusTotals[status] / denominator : null);
             summaryRows.push(rows.length);
-            rows.push([groupName, 'RATA-RATA KELOMPOK', ...dates.map(() => ''), ...averages]);
+            rows.push([groupName, '', 'RATA-RATA KELOMPOK', ...dates.map(() => ''), ...averages]);
           });
 
           const worksheet = XLSX.utils.aoa_to_sheet(rows);
           const lastColumn = headers.length - 1;
           worksheet['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: lastColumn } }];
-          worksheet['!freeze'] = { xSplit: 2, ySplit: 2, topLeftCell: 'C3', activePane: 'bottomRight', state: 'frozen' };
+          worksheet['!freeze'] = { xSplit: 3, ySplit: 2, topLeftCell: 'D3', activePane: 'bottomRight', state: 'frozen' };
           worksheet['!autofilter'] = { ref: `A2:${XLSX.utils.encode_col(lastColumn)}${rows.length}` };
           worksheet['!cols'] = [
             { wch: 22 },
+            { wch: 20 },
             { wch: 34 },
             ...dates.map(() => ({ wch: 12 })),
             { wch: 17 }, { wch: 17 }, { wch: 17 }, { wch: 17 }
